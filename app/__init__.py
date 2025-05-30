@@ -26,9 +26,13 @@ def create_app():
     app.register_blueprint(doctor_bp, url_prefix='/doctor')
     app.register_blueprint(admin_bp, url_prefix='/admin')
 
-    return app
+    
 
 
 
     from app.routes.api import api_bp
     app.register_blueprint(api_bp)
+    from app.routes.treatment import treatment_bp
+    app.register_blueprint(treatment_bp)
+
+    return app

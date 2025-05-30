@@ -1,0 +1,17 @@
+<h2>Назначить лечение для {{ patient.username }}</h2>
+<form method="post">
+    <label>Заметки:</label><br>
+    <textarea name="notes"></textarea><br>
+    <label>Медикаменты:</label><br>
+    <textarea name="medications"></textarea><br>
+    <label>План лечения:</label><br>
+    <textarea name="plan"></textarea><br>
+    <button type="submit">Назначить</button>
+</form>
+
+<h3>Предыдущие назначения:</h3>
+<ul>
+    {% for t in treatments %}
+    <li>{{ t.date_assigned }}: {{ t.notes }}</li>
+    {% endfor %}
+</ul>

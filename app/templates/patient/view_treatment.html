@@ -1,0 +1,6 @@
+<h2>Моё лечение</h2>
+<ul>
+    {% for t in treatments %}
+    <li>{{ t.date_assigned }}: {{ t.notes }}</li>
+    {% endfor %}
+</ul>
