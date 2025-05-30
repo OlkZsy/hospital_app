@@ -1,13 +1,11 @@
-from app import db
+from app.extensions import db
 from flask_login import UserMixin
 
-# roles (admin, doctor, patient)
 class Role(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False, unique=True)
     users = db.relationship('User', backref='role', lazy=True)
 
-# users
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
@@ -17,7 +15,6 @@ class User(UserMixin, db.Model):
     visits = db.relationship('Visit', backref='user', lazy=True)
     treatments = db.relationship('Treatment', backref='patient', lazy=True, foreign_keys='Treatment.patient_id')
 
-# visits
 class Visit(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     doctor_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -25,7 +22,6 @@ class Visit(db.Model):
     date = db.Column(db.DateTime, nullable=False)
     description = db.Column(db.Text)
 
-# health
 class Treatment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     patient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
