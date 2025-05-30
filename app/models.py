@@ -10,10 +10,9 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(128), nullable=False)
+    password = db.Column(db.String(256), nullable=False)  # изменено с 128 на 256
     role_id = db.Column(db.Integer, db.ForeignKey('role.id'), nullable=False)
 
-    #  doctor_id - patient_id
     doctor_visits = db.relationship('Visit', foreign_keys='Visit.doctor_id', backref='doctor', lazy=True)
     patient_visits = db.relationship('Visit', foreign_keys='Visit.patient_id', backref='patient', lazy=True)
 

@@ -7,6 +7,9 @@ from app.routes.doctor import doctor_bp
 from app.routes.admin import admin_bp
 from app.models import User
 
+
+
+
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
@@ -24,3 +27,8 @@ def create_app():
     app.register_blueprint(admin_bp, url_prefix='/admin')
 
     return app
+
+
+
+    from app.routes.api import api_bp
+    app.register_blueprint(api_bp)
