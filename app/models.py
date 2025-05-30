@@ -12,8 +12,12 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(128), nullable=False)
     role_id = db.Column(db.Integer, db.ForeignKey('role.id'), nullable=False)
-    visits = db.relationship('Visit', backref='user', lazy=True)
-    treatments = db.relationship('Treatment', backref='patient', lazy=True, foreign_keys='Treatment.patient_id')
+
+    #  doctor_id - patient_id
+    doctor_visits = db.relationship('Visit', foreign_keys='Visit.doctor_id', backref='doctor', lazy=True)
+    patient_visits = db.relationship('Visit', foreign_keys='Visit.patient_id', backref='patient', lazy=True)
+
+    treatments = db.relationship('Treatment', backref='patient_user', lazy=True, foreign_keys='Treatment.patient_id')
 
 class Visit(db.Model):
     id = db.Column(db.Integer, primary_key=True)
