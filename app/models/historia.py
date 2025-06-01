@@ -1,8 +1,7 @@
-from app import db
+from app.extensions import db
 
 class HistoriaMedyczna(db.Model):
     __tablename__ = 'historia_medyczna'
-
     id_wpisu = db.Column(db.Integer, primary_key=True)
     id_pacjenta = db.Column(db.Integer, db.ForeignKey('pacjenci.id_pacjenta'), nullable=False)
     id_lekarza = db.Column(db.Integer, db.ForeignKey('lekarze.id_lekarza'), nullable=False)

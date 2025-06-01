@@ -1,7 +1,7 @@
-from app import db
-from werkzeug.security import generate_password_hash, check_password_hash
+from app.extensions import db
+from flask_login import UserMixin
 
-class Pacjent(db.Model):
+class Pacjent(db.Model, UserMixin):
     __tablename__ = 'pacjenci'
     id_pacjenta = db.Column(db.Integer, primary_key=True)
     imie = db.Column(db.String(50), nullable=False)
@@ -16,9 +16,3 @@ class Pacjent(db.Model):
     wizyty = db.relationship('Wizyta', backref='pacjent', lazy=True)
     recepty = db.relationship('Recepta', backref='pacjent', lazy=True)
     historia = db.relationship('HistoriaMedyczna', backref='pacjent', lazy=True)
-
-    def set_password(self, password):
-        self.haslo_hash = generate_password_hash(password)
-
-    def check_password(self, password):
-        return check_password_hash(self.haslo_hash, password)

@@ -1,46 +1,78 @@
+# app/routes/auth.py
 from flask import Blueprint, render_template, redirect, url_for, request, flash
-from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, logout_user, login_required
-from app import db
-from app.models import User, Role
+from werkzeug.security import check_password_hash, generate_password_hash
+from app.forms import LoginForm, RegistrationForm
+from app.models.pacjent import Pacjent
+from app.models.lekarz import Lekarz
+from app.models.recepcjonista import Recepcjonista
+from app.models.administrator import Administrator
+from app.extensions import db
 
-auth_bp = Blueprint('auth', __name__)
+auth_bp = Blueprint('auth_bp', __name__)
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        user = User.query.filter_by(username=username).first()
-        if user and check_password_hash(user.password, password):
-            login_user(user)
-            return redirect(url_for(f"{user.role.name}.dashboard"))
-        flash('Invalid info')
-    return render_template('login.html')
+    form = LoginForm()
+    if form.validate_on_submit():
+        email = form.email.data
+        password = form.password.data
 
+        # Поиск пользователя во всех таблицах
+        user = Pacjent.query.filter_by(email=email).first()
+        role = 'pacjent'
+        if not user:
+            user = Lekarz.query.filter_by(email=email).first()
+            role = 'lekarz'
+        if not user:
+            user = Recepcjonista.query.filter_by(email=email).first()
+            role = 'recepcjonista'
+        if not user:
+            user = Administrator.query.filter_by(email=email).first()
+            role = 'administrator'
+
+        if user and check_password_hash(user.haslo_hash, password):
+            login_user(user)
+            if role == 'pacjent':
+                return redirect(url_for('pacjent_bp.dashboard'))
+            elif role == 'lekarz':
+                return redirect(url_for('lekarz_bp.dashboard'))
+            elif role == 'recepcjonista':
+                return redirect(url_for('recepcjonista_bp.dashboard'))
+            elif role == 'administrator':
+                return redirect(url_for('administrator_bp.dashboard'))
+        else:
+            flash('Nieprawidłowy email lub hasło.', 'danger')
+    return render_template('login.html', form=form)
+
+
+#registration form
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
-    if request.method == 'POST':
-        username = request.form['username']
-        email = request.form['email']
-        password = request.form['password']
-        role_name = request.form['role']
-
-        role = Role.query.filter_by(name=role_name).first()
-        if not role:
-            flash('Invalid role')
-            return redirect(url_for('auth.register'))
-
-        hashed_password = generate_password_hash(password)
-        new_user = User(username=username, email=email, password=hashed_password, role=role)
-        db.session.add(new_user)
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        new_pacjent = Pacjent(
+            imie=form.imie.data,
+            nazwisko=form.nazwisko.data,
+            email=form.email.data,
+            telefon=form.telefon.data,
+            adres=form.adres.data,
+            data_urodzenia=form.data_urodzenia.data,
+            pesel=form.pesel.data,
+            haslo_hash=generate_password_hash(form.haslo.data)
+        )
+        db.session.add(new_pacjent)
         db.session.commit()
-        flash('Registered successfully')
-        return redirect(url_for('auth.login'))
-    return render_template('register.html')
+        flash('Zarejestrowano pomyślnie. Możesz się zalogować.', 'success')
+        return redirect(url_for('auth_bp.login'))
+    return render_template('register.html', form=form)
+
+
+
+
 
 @auth_bp.route('/logout')
 @login_required
 def logout():
     logout_user()
-    return redirect(url_for('auth.login'))
+    return redirect(url_for('auth_bp.login'))
