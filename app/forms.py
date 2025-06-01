@@ -1,25 +1,32 @@
 # app/forms.py
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, DateField
+from wtforms import StringField, PasswordField, SubmitField, EmailField, SelectField
 from wtforms.validators import DataRequired, Email, Length, EqualTo
 
-
-
-
-
 class LoginForm(FlaskForm):
-    email = StringField('Email', validators=[DataRequired(), Email()])
+    email = EmailField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Hasło', validators=[DataRequired()])
     submit = SubmitField('Zaloguj się')
 
 class RegistrationForm(FlaskForm):
     imie = StringField('Imię', validators=[DataRequired()])
     nazwisko = StringField('Nazwisko', validators=[DataRequired()])
-    email = StringField('Email', validators=[DataRequired(), Email()])
+    email = EmailField('Email', validators=[DataRequired(), Email()])
+    telefon = StringField('Telefon', validators=[DataRequired()])
     haslo = PasswordField('Hasło', validators=[DataRequired(), Length(min=6)])
     haslo_potwierdzenie = PasswordField('Potwierdź hasło', validators=[DataRequired(), EqualTo('haslo')])
-    telefon = StringField('Telefon')
-    adres = StringField('Adres')
-    data_urodzenia = DateField('Data urodzenia')
-    pesel = StringField('PESEL', validators=[Length(min=11, max=11)])
     submit = SubmitField('Zarejestruj się')
+
+class RegisterUserForm(FlaskForm):  # administrator user registration form
+    imie = StringField('Imię', validators=[DataRequired()])
+    nazwisko = StringField('Nazwisko', validators=[DataRequired()])
+    email = EmailField('Email', validators=[DataRequired(), Email()])
+    telefon = StringField('Telefon', validators=[DataRequired()])
+    haslo = PasswordField('Hasło', validators=[DataRequired(), Length(min=6)])
+    haslo_potwierdzenie = PasswordField('Potwierdź hasło', validators=[DataRequired(), EqualTo('haslo')])
+    rola = SelectField(
+        'Rola',
+        choices=[('lekarz', 'Lekarz'), ('recepcjonista', 'Recepcjonista'), ('administrator', 'Administrator')],
+        validators=[DataRequired()]
+    )
+    submit = SubmitField('Dodaj użytkownika')

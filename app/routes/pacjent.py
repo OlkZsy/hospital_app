@@ -1,7 +1,9 @@
 from flask import Blueprint, render_template
-from flask_login import login_required, current_user
+from flask_login import login_required, current_user, UserMixin
 from app.models.wizyta import Wizyta
 from app.models.pacjent import Pacjent
+from app.extensions import db
+
 
 pacjent_bp = Blueprint('pacjent', __name__, url_prefix='/pacjent')
 

@@ -34,13 +34,13 @@ def login():
         if user and check_password_hash(user.haslo_hash, password):
             login_user(user)
             if role == 'pacjent':
-                return redirect(url_for('pacjent_bp.dashboard'))
+                return redirect(url_for('pacjent.dashboard'))
             elif role == 'lekarz':
-                return redirect(url_for('lekarz_bp.dashboard'))
+                return redirect(url_for('lekarz.dashboard'))
             elif role == 'recepcjonista':
-                return redirect(url_for('recepcjonista_bp.dashboard'))
+                return redirect(url_for('recepcjonista.dashboard'))
             elif role == 'administrator':
-                return redirect(url_for('administrator_bp.dashboard'))
+                return redirect(url_for('administrator.dashboard'))
         else:
             flash('Nieprawidłowy email lub hasło.', 'danger')
     return render_template('login.html', form=form)

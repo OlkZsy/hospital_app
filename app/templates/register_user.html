@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>Zarejestruj użytkownika</h2>
+  <form method="POST">
+    {{ form.hidden_tag() }}
+    <div>{{ form.imie.label }} {{ form.imie(size=32) }}</div>
+    <div>{{ form.nazwisko.label }} {{ form.nazwisko(size=32) }}</div>
+    <div>{{ form.email.label }} {{ form.email(size=32) }}</div>
+    <div>{{ form.telefon.label }} {{ form.telefon(size=32) }}</div>
+    <div>{{ form.haslo.label }} {{ form.haslo(size=32) }}</div>
+    <div>{{ form.haslo_potwierdz.label }} {{ form.haslo_potwierdz(size=32) }}</div>
+    <div>{{ form.rola.label }} {{ form.rola() }}</div>
+    <div>{{ form.submit() }}</div>
+  </form>
+{% endblock %}
