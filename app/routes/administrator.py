@@ -1,19 +1,22 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+# app/routes/administrator.py
+from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from werkzeug.security import generate_password_hash
-from app.models.wizyta import Wizyta
+from app.forms import RegisterUserForm
 from app.models.lekarz import Lekarz
 from app.models.recepcjonista import Recepcjonista
 from app.models.administrator import Administrator
-from app import db
-from app.forms import RegisterUserForm
+from app.models.wizyta import Wizyta
+from app.extensions import db
 
 administrator_bp = Blueprint('administrator_bp', __name__, url_prefix='/administrator')
 
 @administrator_bp.route('/dashboard')
 @login_required
 def dashboard():
-    return render_template('dashboards/administrator.html')
+    if not isinstance(current_user, Administrator):
+        return "Access Denied", 403
+    return render_template('dashboards/administrator.html', user=current_user)
 
 @administrator_bp.route('/wizyty')
 @login_required
@@ -21,36 +24,46 @@ def wizyty():
     wizyty = Wizyta.query.order_by(Wizyta.data_wizyty).all()
     return render_template('administrator/wizyty.html', wizyty=wizyty)
 
-@administrator_bp.route('/register-user', methods=['GET', 'POST'])
+@administrator_bp.route('/register_user', methods=['GET', 'POST'])
 @login_required
 def register_user():
     if not isinstance(current_user, Administrator):
-        flash("Brak dostępu", "danger")
-        return redirect(url_for('auth_bp.login'))
+        return "Access Denied", 403
 
     form = RegisterUserForm()
-    if form.validate_on_submit():
-        hashed = generate_password_hash(form.haslo.data)
 
-        rola = form.rola.data
+    if form.validate_on_submit():
+        imie = form.imie.data
+        nazwisko = form.nazwisko.data
         email = form.email.data
+        telefon = form.telefon.data
+        haslo = form.haslo.data
+        rola = form.rola.data
+
+        hashed_password = generate_password_hash(haslo)
 
         if rola == 'lekarz':
-            nowy = Lekarz(imie=form.imie.data, nazwisko=form.nazwisko.data,
-                          email=email, telefon=form.telefon.data,
-                          haslo_hash=hashed, specjalizacja='', numer_licencji='L' + email[:4])
+            user = Lekarz(imie=imie, nazwisko=nazwisko, email=email, telefon=telefon,
+                          haslo_hash=hashed_password, specjalizacja='Ogólna',
+                          numer_licencji='LIC' + email[:5])
         elif rola == 'recepcjonista':
-            nowy = Recepcjonista(imie=form.imie.data, nazwisko=form.nazwisko.data,
-                                 email=email, telefon=form.telefon.data,
-                                 haslo_hash=hashed)
+            user = Recepcjonista(imie=imie, nazwisko=nazwisko, email=email, telefon=telefon,
+                                  haslo_hash=hashed_password)
         elif rola == 'administrator':
-            nowy = Administrator(imie=form.imie.data, nazwisko=form.nazwisko.data,
-                                 email=email, telefon=form.telefon.data,
-                                 haslo_hash=hashed)
+            user = Administrator(imie=imie, nazwisko=nazwisko, email=email, telefon=telefon,
+                                  haslo_hash=hashed_password)
+        else:
+            flash('Nieznana rola.', 'danger')
+            return redirect(url_for('administrator_bp.register_user'))
 
-        db.session.add(nowy)
-        db.session.commit()
-        flash(f'Użytkownik {rola} został utworzony.', 'success')
+        try:
+            db.session.add(user)
+            db.session.commit()
+            flash(f'Użytkownik {rola} został zarejestrowany.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Błąd przy zapisie: {str(e)}', 'danger')
+
         return redirect(url_for('administrator_bp.dashboard'))
 
-    return render_template('register_user.html', form=form)
+    return render_template('administrator/register_user.html', form=form)

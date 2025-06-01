@@ -2,13 +2,13 @@ from flask import Flask
 from config import Config
 from app.extensions import db, login_manager
 
-# Blueprint imports
+# blueprint imports
 from app.routes.auth import auth_bp
 from app.routes.lekarz import lekarz_bp
 from app.routes.pacjent import pacjent_bp
 from app.routes.administrator import administrator_bp
 
-# Модельные импорты (чтобы Flask SQLAlchemy знал о таблицах)
+# model imports
 from app.models.pacjent import Pacjent
 from app.models.lekarz import Lekarz
 from app.models.recepcjonista import Recepcjonista
@@ -25,17 +25,17 @@ def create_app():
     db.init_app(app)
     login_manager.init_app(app)
 
-    # Настройка загрузчика пользователя
+    ######
     @login_manager.user_loader
     def load_user(user_id):
-        # Попытка загрузить пользователя из всех возможных 
+        ######
         for model in [Pacjent, Lekarz, Recepcjonista, Administrator]:
             user = model.query.get(int(user_id))
             if user:
                 return user
         return None
 
-    #Blueprint reg
+    #blueprint reg
     app.register_blueprint(auth_bp)
     app.register_blueprint(lekarz_bp)
     app.register_blueprint(pacjent_bp)

@@ -17,16 +17,15 @@ class RegistrationForm(FlaskForm):
     haslo_potwierdzenie = PasswordField('Potwierdź hasło', validators=[DataRequired(), EqualTo('haslo')])
     submit = SubmitField('Zarejestruj się')
 
-class RegisterUserForm(FlaskForm):  # administrator user registration form
+class RegisterUserForm(FlaskForm): #administrator form
     imie = StringField('Imię', validators=[DataRequired()])
     nazwisko = StringField('Nazwisko', validators=[DataRequired()])
-    email = EmailField('Email', validators=[DataRequired(), Email()])
+    email = StringField('Email', validators=[DataRequired(), Email()])
     telefon = StringField('Telefon', validators=[DataRequired()])
-    haslo = PasswordField('Hasło', validators=[DataRequired(), Length(min=6)])
-    haslo_potwierdzenie = PasswordField('Potwierdź hasło', validators=[DataRequired(), EqualTo('haslo')])
-    rola = SelectField(
-        'Rola',
-        choices=[('lekarz', 'Lekarz'), ('recepcjonista', 'Recepcjonista'), ('administrator', 'Administrator')],
-        validators=[DataRequired()]
-    )
-    submit = SubmitField('Dodaj użytkownika')
+    haslo = PasswordField('Hasło', validators=[DataRequired()])
+    rola = SelectField('Rola', choices=[
+        ('lekarz', 'Lekarz'),
+        ('recepcjonista', 'Recepcjonista'),
+        ('administrator', 'Administrator')
+    ], validators=[DataRequired()])
+    submit = SubmitField('Zarejestruj')
