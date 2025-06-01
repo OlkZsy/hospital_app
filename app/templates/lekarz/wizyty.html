@@ -1,0 +1,23 @@
+<h2>Moje Wizyty</h2>
+<table border="1">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Data</th>
+      <th>Status</th>
+      <th>Pacjent</th>
+      <th>Notatki</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for w in wizyty %}
+    <tr>
+      <td>{{ w.id_wizyty }}</td>
+      <td>{{ w.data_wizyty }}</td>
+      <td>{{ w.status }}</td>
+      <td>{{ w.pacjent.imie }} {{ w.pacjent.nazwisko }}</td>
+      <td>{{ w.notatki or '' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>

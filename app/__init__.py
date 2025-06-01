@@ -26,7 +26,15 @@ def create_app():
     app.register_blueprint(doctor_bp, url_prefix='/doctor')
     app.register_blueprint(admin_bp, url_prefix='/admin')
 
-    
+    from app.models.pacjent import Pacjent
+    from app.models.lekarz import Lekarz
+    from app.models.recepcjonista import Recepcjonista
+    from app.models.administrator import Administrator
+    from app.models.wizyta import Wizyta
+    from app.models.recepta import Recepta
+    from app.models.historia import HistoriaMedyczna
+    from app.models.harmonogram import HarmonogramLekarza
+
 
 
 
