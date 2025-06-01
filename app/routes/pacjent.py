@@ -1,9 +1,7 @@
 from flask import Blueprint, render_template
-from flask_login import login_required, current_user, UserMixin
+from flask_login import login_required, current_user
 from app.models.wizyta import Wizyta
 from app.models.pacjent import Pacjent
-from app.extensions import db
-
 
 pacjent_bp = Blueprint('pacjent', __name__, url_prefix='/pacjent')
 
@@ -17,3 +15,9 @@ def dashboard():
 def wizyty():
     wizyty = Wizyta.query.filter_by(id_pacjenta=current_user.id_pacjenta).order_by(Wizyta.data_wizyty).all()
     return render_template('pacjent/wizyty.html', wizyty=wizyty)
+
+
+@pacjent_bp.route('/kalendarz')
+@login_required
+def kalendarz():
+    return render_template('partials/calendar.html')

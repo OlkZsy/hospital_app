@@ -1,4 +1,3 @@
-# app/routes/administrator.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from werkzeug.security import generate_password_hash
@@ -21,6 +20,8 @@ def dashboard():
 @administrator_bp.route('/wizyty')
 @login_required
 def wizyty():
+    if not isinstance(current_user, Administrator):
+        return "Access Denied", 403
     wizyty = Wizyta.query.order_by(Wizyta.data_wizyty).all()
     return render_template('administrator/wizyty.html', wizyty=wizyty)
 
@@ -43,15 +44,11 @@ def register_user():
         hashed_password = generate_password_hash(haslo)
 
         if rola == 'lekarz':
-            user = Lekarz(imie=imie, nazwisko=nazwisko, email=email, telefon=telefon,
-                          haslo_hash=hashed_password, specjalizacja='Ogólna',
-                          numer_licencji='LIC' + email[:5])
+            user = Lekarz(imie=imie, nazwisko=nazwisko, email=email, telefon=telefon, haslo_hash=hashed_password, specjalizacja='Ogólna', numer_licencji='LIC' + email[:5])
         elif rola == 'recepcjonista':
-            user = Recepcjonista(imie=imie, nazwisko=nazwisko, email=email, telefon=telefon,
-                                  haslo_hash=hashed_password)
+            user = Recepcjonista(imie=imie, nazwisko=nazwisko, email=email, telefon=telefon, haslo_hash=hashed_password)
         elif rola == 'administrator':
-            user = Administrator(imie=imie, nazwisko=nazwisko, email=email, telefon=telefon,
-                                  haslo_hash=hashed_password)
+            user = Administrator(imie=imie, nazwisko=nazwisko, email=email, telefon=telefon, haslo_hash=hashed_password)
         else:
             flash('Nieznana rola.', 'danger')
             return redirect(url_for('administrator_bp.register_user'))

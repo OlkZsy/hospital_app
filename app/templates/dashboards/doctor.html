@@ -1,6 +1,0 @@
-<h1>Doctor Dashboard</h1>
-<p>Welcome, Dr. {{ user.username }}!</p>
-<a href="{{ url_for('auth.logout') }}">Logout</a> |
-<a href="{{ url_for('doctor.create_visit') }}">Create Visit</a>
-
-{% include 'partials/calendar.html' %}

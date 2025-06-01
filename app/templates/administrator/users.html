@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Lista użytkowników</h2>
+
+    <form method="get" class="mb-3">
+        <label for="rola">Filtruj według roli:</label>
+        <select name="rola" id="rola" class="form-select" onchange="this.form.submit()">
+            <option value="">Wszyscy</option>
+            <option value="lekarz" {% if rola == 'lekarz' %}selected{% endif %}>Lekarze</option>
+            <option value="recepcjonista" {% if rola == 'recepcjonista' %}selected{% endif %}>Recepcjoniści</option>
+            <option value="administrator" {% if rola == 'administrator' %}selected{% endif %}>Administratorzy</option>
+        </select>
+    </form>
+
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Imię i nazwisko</th>
+                <th>Email</th>
+                <th>Telefon</th>
+                <th>Rola</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.imie }} {{ user.nazwisko }}</td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.telefon }}</td>
+                <td>{{ user.__class__.__name__ }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

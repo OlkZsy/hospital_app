@@ -1,44 +1,37 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container mt-5">
-    <h2 class="mb-4">Rejestracja użytkownika</h2>
-    <form method="POST">
-        {{ form.hidden_tag() }}
+<div class="container mt-4">
+    <h2 class="mb-4">Dodaj użytkownika</h2>
 
-        <div class="form-group mb-3">
+    <form method="POST" action="{{ url_for('administrator_bp.register_user') }}">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
             {{ form.imie.label(class="form-label") }}
             {{ form.imie(class="form-control") }}
         </div>
-
-        <div class="form-group mb-3">
+        <div class="form-group">
             {{ form.nazwisko.label(class="form-label") }}
             {{ form.nazwisko(class="form-control") }}
         </div>
-
-        <div class="form-group mb-3">
+        <div class="form-group">
             {{ form.email.label(class="form-label") }}
             {{ form.email(class="form-control") }}
         </div>
-
-        <div class="form-group mb-3">
+        <div class="form-group">
             {{ form.telefon.label(class="form-label") }}
             {{ form.telefon(class="form-control") }}
         </div>
-
-        <div class="form-group mb-3">
+        <div class="form-group">
             {{ form.haslo.label(class="form-label") }}
             {{ form.haslo(class="form-control") }}
         </div>
-
-        <div class="form-group mb-3">
+        <div class="form-group">
             {{ form.rola.label(class="form-label") }}
             {{ form.rola(class="form-control") }}
         </div>
-
-        <div class="form-group">
-            {{ form.submit(class="btn btn-primary") }}
-        </div>
+        <button type="submit" class="btn btn-success mt-3">Zarejestruj</button>
+        <a href="{{ url_for('administrator_bp.dashboard') }}" class="btn btn-secondary mt-3 ml-2">Powrót do panelu</a>
     </form>
 </div>
 {% endblock %}

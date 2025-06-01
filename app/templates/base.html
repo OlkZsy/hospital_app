@@ -8,10 +8,15 @@
 <body>
     <header>
         <h1>Aplikacja Szpitalna</h1>
-        <nav>
-            <a href="{{ url_for('auth_bp.login') }}">Logowanie</a>
-            <a href="{{ url_for('auth_bp.register') }}">Rejestracja</a>
-        </nav>
+        {% if current_user.is_authenticated %}
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('auth_bp.logout') }}">Wyloguj się</a>
+        </li>
+        {% else %}
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('auth_bp.login') }}">Logowanie</a>
+        </li>
+        {% endif %}
     </header>
     <main>
         {% with messages = get_flashed_messages(with_categories=true) %}

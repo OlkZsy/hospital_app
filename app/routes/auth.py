@@ -23,7 +23,7 @@ def login():
         user = None
         role = None
 
-        # Sprawdź każdy typ użytkownika
+        #role check
         user = Pacjent.query.filter_by(email=email).first()
         if user and check_password_hash(user.haslo_hash, password):
             role = 'pacjent'
