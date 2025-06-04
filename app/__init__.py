@@ -29,8 +29,7 @@ def create_app():
     ######
     @login_manager.user_loader
     def load_user(user_id):
-        ######
-        for model in [Pacjent, Lekarz, Recepcjonista, Administrator]:
+        for model in [Administrator, Lekarz, Pacjent, Recepcjonista]:
             user = model.query.get(int(user_id))
             if user:
                 return user

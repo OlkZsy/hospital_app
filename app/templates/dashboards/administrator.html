@@ -10,7 +10,7 @@
                 <div class="card-header">Zarządzanie użytkownikami</div>
                 <div class="card-body">
                     <p class="card-text">Dodaj nowego lekarza, recepcjonistę lub administratora.</p>
-                   <a href="{{ url_for('administrator_bp.register_user') }}" class="btn btn-light">Dodaj użytkownika</a>
+                    <a href="{{ url_for('administrator_bp.register_user') }}" class="btn btn-light">Dodaj użytkownika</a>
                 </div>
             </div>
         </div>
@@ -30,24 +30,10 @@
                 <div class="card-header">Harmonogramy lekarzy</div>
                 <div class="card-body">
                     <p class="card-text">Zarządzaj dostępnością lekarzy.</p>
-                    <a href="#" class="btn btn-light disabled">Work in progress</a>
+                    <a href="#" class="btn btn-light disabled">W budowie</a>
                 </div>
             </div>
         </div>
-
-        <div class="col-md-4">
-            <div class="card text-white bg-warning mb-3">
-                <div class="card-header">Lista użytkowników</div>
-                <div class="card-body">
-                    <p class="card-text">Wyświetl wszystkich zarejestrowanych użytkowników.</p>
-                    <a href="{{ url_for('administrator_bp.users') }}" class="btn btn-light">Przeglądaj użytkowników</a>
-                </div>
-            </div>
-        </div>
-
-
-
-
     </div>
 </div>
 {% endblock %}

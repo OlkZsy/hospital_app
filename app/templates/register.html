@@ -1,17 +1,41 @@
 {% extends 'base.html' %}
+
 {% block content %}
-<h2>Rejestracja pacjenta</h2>
-<form method="POST">
+  <h2>Rejestracja</h2>
+  <form method="POST" action="">
     {{ form.hidden_tag() }}
-    {{ form.imie.label }} {{ form.imie(size=32) }}<br>
-    {{ form.nazwisko.label }} {{ form.nazwisko(size=32) }}<br>
-    {{ form.email.label }} {{ form.email(size=32) }}<br>
-    {{ form.telefon.label }} {{ form.telefon(size=32) }}<br>
-    {{ form.adres.label }} {{ form.adres(size=32) }}<br>
-    {{ form.data_urodzenia.label }} {{ form.data_urodzenia() }}<br>
-    {{ form.pesel.label }} {{ form.pesel(size=32) }}<br>
-    {{ form.haslo.label }} {{ form.haslo(size=32) }}<br>
-    {{ form.haslo_potwierdzenie.label }} {{ form.haslo_potwierdzenie(size=32) }}<br>
-    {{ form.submit() }}
-</form>
+    <p>
+      {{ form.imie.label }}<br>
+      {{ form.imie(size=32) }}
+    </p>
+    <p>
+      {{ form.nazwisko.label }}<br>
+      {{ form.nazwisko(size=32) }}
+    </p>
+    <p>
+      {{ form.email.label }}<br>
+      {{ form.email(size=32) }}
+    </p>
+    <p>
+      {{ form.telefon.label }}<br>
+      {{ form.telefon(size=32) }}
+    </p>
+    <p>
+      {{ form.haslo.label }}<br>
+      {{ form.haslo(size=32) }}
+    </p>
+    <p>
+      {{ form.adres.label }}<br>
+      {{ form.adres(size=64) }}
+    </p>
+    <p>
+      {{ form.data_urodzenia.label }}<br>
+      {{ form.data_urodzenia() }}
+    </p>
+    <p>
+      {{ form.pesel.label }}<br>
+      {{ form.pesel(size=11) }}
+    </p>
+    <p>{{ form.submit() }}</p>
+  </form>
 {% endblock %}

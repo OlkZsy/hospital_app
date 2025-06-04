@@ -44,11 +44,14 @@ def register_user():
         hashed_password = generate_password_hash(haslo)
 
         if rola == 'lekarz':
-            user = Lekarz(imie=imie, nazwisko=nazwisko, email=email, telefon=telefon, haslo_hash=hashed_password, specjalizacja='Ogólna', numer_licencji='LIC' + email[:5])
+            user = Lekarz(imie=imie, nazwisko=nazwisko, email=email, telefon=telefon,
+                          haslo_hash=hashed_password, specjalizacja='Ogólna', numer_licencji='LIC' + email[:5])
         elif rola == 'recepcjonista':
-            user = Recepcjonista(imie=imie, nazwisko=nazwisko, email=email, telefon=telefon, haslo_hash=hashed_password)
+            user = Recepcjonista(imie=imie, nazwisko=nazwisko, email=email, telefon=telefon,
+                                 haslo_hash=hashed_password)
         elif rola == 'administrator':
-            user = Administrator(imie=imie, nazwisko=nazwisko, email=email, telefon=telefon, haslo_hash=hashed_password)
+            user = Administrator(imie=imie, nazwisko=nazwisko, email=email, telefon=telefon,
+                                 haslo_hash=hashed_password)
         else:
             flash('Nieznana rola.', 'danger')
             return redirect(url_for('administrator_bp.register_user'))

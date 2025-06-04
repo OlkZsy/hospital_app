@@ -9,15 +9,14 @@ class LoginForm(FlaskForm):
     submit = SubmitField('Zaloguj się')
 
 class RegistrationForm(FlaskForm):
-    imie = StringField('Imię', validators=[DataRequired()])
-    nazwisko = StringField('Nazwisko', validators=[DataRequired()])
-    email = EmailField('Email', validators=[DataRequired(), Email()])
-    telefon = StringField('Telefon', validators=[DataRequired()])
-    adres = StringField('Adres', validators=[DataRequired()])
+    imie = StringField('Imię', validators=[DataRequired(), Length(min=2, max=50)])
+    nazwisko = StringField('Nazwisko', validators=[DataRequired(), Length(min=2, max=50)])
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    telefon = StringField('Telefon', validators=[DataRequired(), Length(min=9, max=15)])
+    haslo = PasswordField('Hasło', validators=[DataRequired(), Length(min=6)])
+    adres = StringField('Adres', validators=[DataRequired(), Length(min=5, max=100)])
     data_urodzenia = DateField('Data urodzenia', format='%Y-%m-%d', validators=[DataRequired()])
     pesel = StringField('PESEL', validators=[DataRequired(), Length(min=11, max=11)])
-    haslo = PasswordField('Hasło', validators=[DataRequired(), Length(min=6)])
-    haslo_potwierdzenie = PasswordField('Potwierdź hasło', validators=[DataRequired(), EqualTo('haslo')])
     submit = SubmitField('Zarejestruj się')
 
 class RegisterUserForm(FlaskForm): #administrator form
