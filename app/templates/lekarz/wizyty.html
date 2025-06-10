@@ -1,23 +1,105 @@
-<h2>Moje Wizyty</h2>
-<table border="1">
-  <thead>
-    <tr>
-      <th>ID</th>
-      <th>Data</th>
-      <th>Status</th>
-      <th>Pacjent</th>
-      <th>Notatki</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for w in wizyty %}
-    <tr>
-      <td>{{ w.id_wizyty }}</td>
-      <td>{{ w.data_wizyty }}</td>
-      <td>{{ w.status }}</td>
-      <td>{{ w.pacjent.imie }} {{ w.pacjent.nazwisko }}</td>
-      <td>{{ w.notatki or '' }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+{% extends 'base.html' %}
+
+{% block content %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Moje wizyty</h2>
+        <a href="{{ url_for('lekarz_bp.create_wizyta') }}" class="btn btn-success">
+            <i class="fas fa-plus"></i> Nowa wizyta
+        </a>
+    </div>
+    
+    {% if wizyty %}
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Data i godzina</th>
+                            <th>Pacjent</th>
+                            <th>Status</th>
+                            <th>Notatki</th>
+                            <th>Akcje</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for wizyta in wizyty %}
+                        <tr>
+                            <td>
+                                <strong>{{ wizyta.data_wizyty.strftime('%d.%m.%Y') }}</strong><br>
+                                <small class="text-muted">{{ wizyta.data_wizyty.strftime('%H:%M') }}</small>
+                            </td>
+                            <td>
+                                <strong>{{ wizyta.pacjent.imie }} {{ wizyta.pacjent.nazwisko }}</strong><br>
+                                <small class="text-muted">{{ wizyta.pacjent.email }}</small>
+                            </td>
+                            <td>
+                                {% if wizyta.status == 'zaplanowana' %}
+                                <span class="badge bg-primary">Zaplanowana</span>
+                                {% elif wizyta.status == 'zakonczona' %}
+                                <span class="badge bg-success">Zakończona</span>
+                                {% elif wizyta.status == 'anulowana' %}
+                                <span class="badge bg-danger">Anulowana</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ wizyta.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if wizyta.notatki %}
+                                <span data-bs-toggle="tooltip" title="{{ wizyta.notatki }}">
+                                    {{ wizyta.notatki[:50] }}{% if wizyta.notatki|length > 50 %}...{% endif %}
+                                </span>
+                                {% else %}
+                                <span class="text-muted">Brak notatek</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{{ url_for('lekarz_bp.pacjent_leczenie', id_pacjenta=wizyta.pacjent.id_pacjenta) }}" 
+                                       class="btn btn-outline-primary" title="Zobacz pacjenta">
+                                        <i class="fas fa-user"></i>
+                                    </a>
+                                    {% if wizyta.status == 'zaplanowana' %}
+                                    <button class="btn btn-outline-success" title="Zakończ wizytę">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <h4 class="alert-heading">Brak wizyt</h4>
+        <p>Nie masz jeszcze żadnych zaplanowanych wizyt.</p>
+        <hr>
+        <a href="{{ url_for('lekarz_bp.create_wizyta') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Utwórz pierwszą wizytę
+        </a>
+    </div>
+    {% endif %}
+    
+    <div class="mt-4">
+        <a href="{{ url_for('lekarz_bp.dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Powrót do panelu
+        </a>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// Инициализация tooltips
+var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+  return new bootstrap.Tooltip(tooltipTriggerEl)
+})
+</script>
+{% endblock %}

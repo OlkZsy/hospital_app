@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Leczenie: {{ pacjent.imie }} {{ pacjent.nazwisko }}</h2>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Historia medyczna</h5>
+                </div>
+                <div class="card-body">
+                    {% for wpis in historia %}
+                    <div class="mb-3 p-3 border rounded">
+                        <strong>{{ wpis.data_wpisu }}</strong><br>
+                        <strong>Diagnoza:</strong> {{ wpis.diagnoza }}<br>
+                        <strong>Notatki:</strong> {{ wpis.notatki }}
+                    </div>
+                    {% else %}
+                    <p>Brak historii medycznej.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Recepty</h5>
+                </div>
+                <div class="card-body">
+                    {% for recepta in recepty %}
+                    <div class="mb-3 p-3 border rounded">
+                        <strong>{{ recepta.data_wystawienia }}</strong><br>
+                        <strong>Leki:</strong> {{ recepta.leki }}<br>
+                        <strong>Instrukcje:</strong> {{ recepta.instrukcje }}
+                    </div>
+                    {% else %}
+                    <p>Brak recept.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Formularz dodawania nowego wpisu -->
+    <div class="card">
+        <div class="card-header">
+            <h5>Dodaj wpis do historii</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('lekarz.dodaj_historie', id_pacjenta=pacjent.id_pacjenta) }}">
+                <div class="mb-3">
+                    <label for="diagnoza" class="form-label">Diagnoza</label>
+                    <input type="text" name="diagnoza" id="diagnoza" class="form-control" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="notatki" class="form-label">Notatki</label>
+                    <textarea name="notatki" id="notatki" class="form-control" rows="3"></textarea>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Dodaj wpis</button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="mt-3">
+        <a href="{{ url_for('lekarz.pacjenci') }}" class="btn btn-secondary">Powrót do listy pacjentów</a>
+    </div>
+</div>
+{% endblock %}

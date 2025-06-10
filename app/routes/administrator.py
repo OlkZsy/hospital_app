@@ -44,8 +44,17 @@ def register_user():
         hashed_password = generate_password_hash(haslo)
 
         if rola == 'lekarz':
+            # Генерируем уникальный номер лицензии
+            import random
+            while True:
+                numer_licencji = 'LIC' + str(random.randint(100000, 999999))
+                existing = Lekarz.query.filter_by(numer_licencji=numer_licencji).first()
+                if not existing:
+                    break
+    
             user = Lekarz(imie=imie, nazwisko=nazwisko, email=email, telefon=telefon,
-                          haslo_hash=hashed_password, specjalizacja='Ogólna', numer_licencji='LIC' + email[:5])
+                          haslo_hash=hashed_password, specjalizacja='Ogólna', 
+                          numer_licencji=numer_licencji)
         elif rola == 'recepcjonista':
             user = Recepcjonista(imie=imie, nazwisko=nazwisko, email=email, telefon=telefon,
                                  haslo_hash=hashed_password)

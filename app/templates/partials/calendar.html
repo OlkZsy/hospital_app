@@ -1,17 +1,459 @@
-<link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
-<script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
+{% extends 'base.html' %}
 
-<div id='calendar'></div>
+{% block content %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css' rel='stylesheet' />
+
+<div class="container-fluid mt-4">
+    <h2 class="mb-4">Kalendarz - harmonogram pracy</h2>
+    
+    <!-- Легенда -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <div class="d-flex gap-4 align-items-center">
+                    <strong>Legenda:</strong>
+                    <span><span class="badge bg-success me-1">■</span> Dostępne terminy</span>
+                    <span><span class="badge bg-danger me-1">■</span> Zajęte terminy</span>
+                    <span class="text-muted">Kliknij na dzień aby zobaczyć szczegółowy harmonogram</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- FullCalendar -->
+    <div class="card">
+        <div class="card-body">
+            <div id='calendar'></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal szczegółowego harmonogramu na dzień -->
+<div class="modal fade" id="dayScheduleModal" tabindex="-1" aria-labelledby="dayScheduleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="dayScheduleModalLabel">Harmonogram na dzień</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="dayScheduleContent">
+                    <div class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Ładowanie...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zamknij</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal potwierdzenia wizyty -->
+<div class="modal fade" id="bookAppointmentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Potwierdź wizytę</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="appointmentConfirmDetails"></div>
+                <div class="mb-3">
+                    <label for="appointmentNotes" class="form-label">Notatki (opcjonalne)</label>
+                    <textarea id="appointmentNotes" class="form-control" rows="3" placeholder="Dodatkowe informacje o wizycie..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                <button type="button" class="btn btn-success" onclick="confirmAppointment()">Potwierdź wizytę</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/locales/pl.min.js'></script>
 
 <script>
+class HospitalCalendar {
+    constructor() {
+        this.calendar = null;
+        this.selectedSlot = null;
+        this.currentViewDate = new Date();
+        {% if current_user.id_lekarza %}
+        this.doctorId = {{ current_user.id_lekarza }};
+        {% else %}
+        this.doctorId = null;
+        {% endif %}
+        this.init();
+    }
+    
+    init() {
+        this.initCalendar();
+        this.loadMonthSchedule();
+    }
+    
+    initCalendar() {
+        var calendarEl = document.getElementById('calendar');
+        var self = this;
+        
+        this.calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            locale: 'pl',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth'
+            },
+            height: 'auto',
+            events: [],
+            dateClick: function(info) {
+                self.showDaySchedule(info.dateStr);
+            },
+            datesSet: function(info) {
+                self.currentViewDate = info.start;
+                self.loadMonthSchedule();
+            },
+            eventContent: function(arg) {
+                return { html: arg.event.title };
+            }
+        });
+        
+        this.calendar.render();
+    }
+    
+    loadMonthSchedule() {
+        var self = this;
+        try {
+            // Получаем все дни текущего месяца
+            var year = this.currentViewDate.getFullYear();
+            var month = this.currentViewDate.getMonth();
+            var startDate = new Date(year, month, 1);
+            var endDate = new Date(year, month + 1, 0);
+            
+            // Очищаем события
+            this.calendar.removeAllEvents();
+            
+            // Загружаем расписание для каждого дня месяца
+            var d = new Date(startDate);
+            function loadNextDay() {
+                if (d <= endDate) {
+                    var dateStr = d.toISOString().split('T')[0];
+                    self.loadDayEvents(dateStr).then(function() {
+                        d.setDate(d.getDate() + 1);
+                        loadNextDay();
+                    });
+                }
+            }
+            loadNextDay();
+            
+        } catch (error) {
+            console.error('Error loading month schedule:', error);
+        }
+    }
+    
+    loadDayEvents(dateStr) {
+        var self = this;
+        return fetch('/lekarz/api/my-schedule?date=' + dateStr)
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                if (data.slots && data.slots.length > 0) {
+                    var events = self.createDayEvents(dateStr, data.slots);
+                    events.forEach(function(event) {
+                        self.calendar.addEvent(event);
+                    });
+                }
+            })
+            .catch(function(error) {
+                console.error('Error loading schedule for ' + dateStr + ':', error);
+            });
+    }
+    
+    createDayEvents(dateStr, slots) {
+        var events = [];
+        var availableSlots = slots.filter(function(slot) { return slot.available; });
+        var occupiedSlots = slots.filter(function(slot) { return !slot.available; });
+        
+        // Группируем последовательные доступные слоты
+        if (availableSlots.length > 0) {
+            var availableRanges = this.groupConsecutiveSlots(availableSlots);
+            availableRanges.forEach(function(range) {
+                events.push({
+                    title: range.start + ' - ' + range.end + ' Dostępne',
+                    start: dateStr,
+                    display: 'list-item',
+                    backgroundColor: '#28a745',
+                    borderColor: '#28a745',
+                    textColor: 'white'
+                });
+            });
+        }
+        
+        // Группируем последовательные занятые слоты
+        if (occupiedSlots.length > 0) {
+            var occupiedRanges = this.groupConsecutiveSlots(occupiedSlots);
+            occupiedRanges.forEach(function(range) {
+                events.push({
+                    title: range.start + ' - ' + range.end + ' Zajęte',
+                    start: dateStr,
+                    display: 'list-item',
+                    backgroundColor: '#dc3545',
+                    borderColor: '#dc3545',
+                    textColor: 'white'
+                });
+            });
+        }
+        
+        return events;
+    }
+    
+    groupConsecutiveSlots(slots) {
+        if (slots.length === 0) return [];
+        
+        var ranges = [];
+        var currentRange = {
+            start: slots[0].time,
+            end: this.addMinutes(slots[0].time, 15)
+        };
+        
+        for (var i = 1; i < slots.length; i++) {
+            var expectedNext = this.addMinutes(slots[i-1].time, 15);
+            if (slots[i].time === expectedNext) {
+                // Продолжаем текущий диапазон
+                currentRange.end = this.addMinutes(slots[i].time, 15);
+            } else {
+                // Начинаем новый диапазон
+                ranges.push(currentRange);
+                currentRange = {
+                    start: slots[i].time,
+                    end: this.addMinutes(slots[i].time, 15)
+                };
+            }
+        }
+        ranges.push(currentRange);
+        
+        return ranges;
+    }
+    
+    addMinutes(timeStr, minutes) {
+        var parts = timeStr.split(':');
+        var hours = parseInt(parts[0], 10);
+        var mins = parseInt(parts[1], 10);
+        var date = new Date();
+        date.setHours(hours, mins + minutes, 0, 0);
+        return date.toTimeString().slice(0, 5);
+    }
+    
+    showDaySchedule(dateStr) {
+        var self = this;
+        var modal = new bootstrap.Modal(document.getElementById('dayScheduleModal'));
+        var modalTitle = document.getElementById('dayScheduleModalLabel');
+        var modalContent = document.getElementById('dayScheduleContent');
+        
+        modalTitle.textContent = 'Harmonogram na ' + this.formatPolishDate(dateStr);
+        modalContent.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
+        
+        modal.show();
+        
+        fetch('/lekarz/api/my-schedule?date=' + dateStr)
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                if (data.slots && data.slots.length > 0) {
+                    self.renderDaySchedule(data.slots, dateStr, modalContent);
+                } else {
+                    var message = 'Brak harmonogramu na ' + (data.weekday || 'wybrany dzień') + '.';
+                    if (data.available_days && data.available_days.length > 0) {
+                        message += '<br><strong>Dostępne dni:</strong> ' + data.available_days.join(', ');
+                    }
+                    modalContent.innerHTML = '<div class="alert alert-info"><h6>Brak harmonogramu</h6><p>' + message + '</p></div>';
+                }
+            })
+            .catch(function(error) {
+                modalContent.innerHTML = '<div class="alert alert-danger">Błąd ładowania harmonogramu</div>';
+            });
+    }
+    
+    renderDaySchedule(slots, dateStr, container) {
+        var slotsHtml = slots.map(function(slot) {
+            var badgeClass = slot.available ? 'bg-success' : 'bg-danger';
+            var clickHandler = slot.available ? 'onclick="calendar.selectSlot(\'' + dateStr + '\', \'' + slot.time + '\', \'' + slot.datetime + '\')"' : '';
+            var cursor = slot.available ? 'pointer' : 'default';
+            var patientInfo = slot.available ? 'Dostępne' : slot.patient;
+            
+            return '<div class="col-md-3 col-sm-4 col-6 mb-2">' +
+                   '<div class="badge ' + badgeClass + ' w-100 p-2" style="cursor: ' + cursor + '" ' + clickHandler + '>' +
+                   '<div class="fw-bold">' + slot.time + '</div>' +
+                   '<small>' + patientInfo + '</small>' +
+                   '</div>' +
+                   '</div>';
+        }).join('');
+        
+        container.innerHTML = '<div class="mb-3">' +
+                             '<h6>Wybierz godzinę wizyty:</h6>' +
+                             '<p class="text-muted">Kliknij na dostępny termin aby umówić wizytę.</p>' +
+                             '</div>' +
+                             '<div class="row g-2">' + slotsHtml + '</div>';
+    }
+    
+    selectSlot(dateStr, timeStr, datetime) {
+        this.selectedSlot = { dateStr: dateStr, timeStr: timeStr, datetime: datetime };
+        
+        // Закрываем модал расписания
+        var dayModal = bootstrap.Modal.getInstance(document.getElementById('dayScheduleModal'));
+        dayModal.hide();
+        
+        // Показываем модал создания визиты
+        this.showAppointmentModal();
+    }
+    
+    showAppointmentModal() {
+        var modal = new bootstrap.Modal(document.getElementById('bookAppointmentModal'));
+        var detailsEl = document.getElementById('appointmentConfirmDetails');
+        
+        detailsEl.innerHTML = '<div class="alert alert-primary">' +
+                             '<h6>Szczegóły wizyty:</h6>' +
+                             '<p><strong>Data:</strong> ' + this.formatPolishDate(this.selectedSlot.dateStr) + '</p>' +
+                             '<p><strong>Godzina:</strong> ' + this.selectedSlot.timeStr + '</p>' +
+                             '<p><strong>Czas trwania:</strong> 15 minut</p>' +
+                             '</div>' +
+                             '<div class="mb-3">' +
+                             '<label for="patientSelect" class="form-label">Wybierz pacjenta *</label>' +
+                             '<select id="patientSelect" class="form-select" required>' +
+                             '<option value="">Ładowanie pacjentów...</option>' +
+                             '</select>' +
+                             '</div>';
+        
+        modal.show();
+        this.loadPatients();
+    }
+    
+    loadPatients() {
+        fetch('/lekarz/api/patients')
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(patients) {
+                var select = document.getElementById('patientSelect');
+                select.innerHTML = '<option value="">Wybierz pacjenta</option>';
+                
+                patients.forEach(function(patient) {
+                    var option = document.createElement('option');
+                    option.value = patient.id;
+                    option.textContent = patient.name + ' (' + patient.email + ')';
+                    select.appendChild(option);
+                });
+            })
+            .catch(function(error) {
+                document.getElementById('patientSelect').innerHTML = '<option value="">Błąd ładowania pacjentów</option>';
+            });
+    }
+    
+    formatPolishDate(dateStr) {
+        var months = [
+            'stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca',
+            'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'
+        ];
+        
+        var date = new Date(dateStr);
+        var day = date.getDate();
+        var month = months[date.getMonth()];
+        var year = date.getFullYear();
+        
+        return day + ' ' + month + ' ' + year;
+    }
+}
+
+// Глобальные функции
+var calendar;
+
 document.addEventListener('DOMContentLoaded', function() {
-  var calendarEl = document.getElementById('calendar');
-
-  var calendar = new FullCalendar.Calendar(calendarEl, {
-    initialView: 'dayGridMonth',
-    events: '/api/visits'
-  });
-
-  calendar.render();
+    calendar = new HospitalCalendar();
 });
+
+function confirmAppointment() {
+    var patientId = document.getElementById('patientSelect').value;
+    var notes = document.getElementById('appointmentNotes').value;
+    
+    if (!patientId) {
+        alert('Proszę wybrać pacjenta');
+        return;
+    }
+    
+    if (!calendar.doctorId) {
+        alert('Błąd: Nie można określić ID lekarza');
+        return;
+    }
+    
+    fetch('/lekarz/api/book-slot', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            datetime: calendar.selectedSlot.datetime,
+            patient_id: patientId,
+            doctor_id: calendar.doctorId,
+            notes: notes
+        })
+    })
+    .then(function(response) {
+        return response.json();
+    })
+    .then(function(result) {
+        if (result.success) {
+            // Закрываем модал
+            var modal = bootstrap.Modal.getInstance(document.getElementById('bookAppointmentModal'));
+            modal.hide();
+            
+            // Обновляем календарь
+            calendar.loadMonthSchedule();
+            
+            alert('Wizyta została umówiona pomyślnie!');
+        } else {
+            alert('Błąd: ' + result.error);
+        }
+    })
+    .catch(function(error) {
+        alert('Błąd połączenia: ' + error.message);
+    });
+}
 </script>
+
+<style>
+.fc-event {
+    font-size: 11px;
+    padding: 1px 3px;
+    margin: 1px 0;
+}
+
+.fc-daygrid-event {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fc-day-today {
+    background-color: #fff3cd !important;
+}
+
+.fc-day:hover {
+    background-color: #f8f9fa;
+    cursor: pointer;
+}
+
+.badge:hover {
+    transform: scale(1.05);
+    transition: transform 0.1s;
+}
+</style>
+{% endblock %}

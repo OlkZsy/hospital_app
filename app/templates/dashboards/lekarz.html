@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Panel lekarza</h2>
+    <p class="lead">Witaj, Dr {{ user.imie }} {{ user.nazwisko }}!</p>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card text-white bg-primary mb-3">
+                <div class="card-header">Moje wizyty</div>
+                <div class="card-body">
+                    <p class="card-text">Zobacz swoje nadchodzące i przeszłe wizyty.</p>
+                    <a href="{{ url_for('lekarz_bp.wizyty') }}" class="btn btn-light">Przeglądaj wizyty</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card text-white bg-success mb-3">
+                <div class="card-header">Tworzenie wizyt</div>
+                <div class="card-body">
+                    <p class="card-text">Umów nową wizytę z pacjentem.</p>
+                    <a href="{{ url_for('lekarz_bp.create_wizyta') }}" class="btn btn-light">Nowa wizyta</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card text-white bg-info mb-3">
+                <div class="card-header">Pacjenci</div>
+                <div class="card-body">
+                    <p class="card-text">Zarządzaj leczeniem pacjentów.</p>
+                    <a href="{{ url_for('lekarz_bp.pacjenci') }}" class="btn btn-light">Lista pacjentów</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card text-white bg-warning mb-3">
+                <div class="card-header">Kalendarz</div>
+                <div class="card-body">
+                    <p class="card-text">Zobacz swój harmonogram w kalendarzu.</p>
+                    <a href="{{ url_for('lekarz_bp.kalendarz') }}" class="btn btn-light">Kalendarz</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card text-white bg-secondary mb-3">
+                <div class="card-header">Harmonogram</div>
+                <div class="card-body">
+                    <p class="card-text">Ustaw swoją dostępność.</p>
+                    <a href="#" class="btn btn-light disabled">W budowie</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

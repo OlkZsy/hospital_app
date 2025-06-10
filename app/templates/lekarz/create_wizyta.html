@@ -1,0 +1,512 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<div class="container mt-4">
+    <h2 class="mb-4">Nowa wizyta</h2>
+    
+    <div class="row">
+        <!-- Форма слева -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Dane wizyty</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="wizytaForm">
+                        <div class="mb-3">
+                            <label for="id_pacjenta" class="form-label">Pacjent *</label>
+                            <select name="id_pacjenta" id="id_pacjenta" class="form-select" required>
+                                <option value="">Wybierz pacjenta</option>
+                                {% for pacjent in pacjenci %}
+                                <option value="{{ pacjent.id_pacjenta }}" 
+                                    {% if preselected_pacjent_id == pacjent.id_pacjenta %}selected{% endif %}>
+                                    {{ pacjent.imie }} {{ pacjent.nazwisko }} - {{ pacjent.email }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="data_wizyty" class="form-label">Data i godzina wizyty *</label>
+                            <input type="datetime-local" name="data_wizyty" id="data_wizyty" 
+                                   class="form-control" required step="900" readonly
+                                   min="2025-01-01T00:00" max="2030-12-31T23:59">
+                            <div class="form-text">Wybierz termin z kalendarza po prawej stronie</div>
+                        </div>
+                        
+                        <div class="mb-3" id="selectedTimeInfo" style="display: none;">
+                            <div class="alert alert-success">
+                                <strong>Wybrany termin:</strong>
+                                <div id="selectedTimeText"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="notatki" class="form-label">Notatki wstępne</label>
+                            <textarea name="notatki" id="notatki" class="form-control" rows="4" 
+                                      placeholder="Opcjonalne notatki dotyczące wizyty..."></textarea>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success" disabled id="submitBtn">
+                                <i class="fas fa-plus"></i> Utwórz wizytę
+                            </button>
+                            <a href="{{ url_for('lekarz_bp.dashboard') }}" class="btn btn-secondary">Anuluj</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Информационная панель -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6>Instrukcje</h6>
+                </div>
+                <div class="card-body">
+                    <ol class="small">
+                        <li>Wybierz pacjenta z listy</li>
+                        <li>Kliknij na dzień w kalendarzu (kolorowy = dostępny)</li>
+                        <li>Wybierz dostępną godzinę (zielony slot)</li>
+                        <li>Dodaj notatki jeśli potrzebne</li>
+                        <li>Kliknij "Utwórz wizytę"</li>
+                    </ol>
+                    
+                    <hr>
+                    
+                    <div class="small">
+                        <strong>Kolory kalendarza:</strong><br>
+                        <span class="badge bg-success me-1">■</span> Wszystko dostępne<br>
+                        <span class="badge bg-warning me-1">■</span> Częściowo dostępne<br>
+                        <span class="badge bg-danger me-1">■</span> Wszystko zajęte<br>
+                        <span class="badge bg-secondary me-1">■</span> Brak harmonogramu
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Календарь справа -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5>Wybierz termin z kalendarza</h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <button onclick="appointmentCalendar.previousMonth()" class="btn btn-sm btn-outline-primary">&lt;</button>
+                        <span id="calendarMonthYear" class="fw-bold">Loading...</span>
+                        <button onclick="appointmentCalendar.nextMonth()" class="btn btn-sm btn-outline-primary">&gt;</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="calendar-grid">
+                        <!-- Заголовки дней недели -->
+                        <div class="row text-center fw-bold border-bottom pb-2 mb-2">
+                            <div class="col">Pon</div>
+                            <div class="col">Wt</div>
+                            <div class="col">Śr</div>
+                            <div class="col">Czw</div>
+                            <div class="col">Pt</div>
+                            <div class="col">Sob</div>
+                            <div class="col">Nie</div>
+                        </div>
+                        
+                        <!-- Дни месяца -->
+                        <div id="appointmentCalendarDays"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal wyboru godziny -->
+<div class="modal fade" id="timeSlotModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="timeSlotModalLabel">Wybierz godzinę</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="timeSlotsContent">
+                    <div class="text-center">
+                        <div class="spinner-border" role="status"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+class AppointmentCalendar {
+    constructor() {
+        this.currentDate = new Date();
+        this.selectedSlot = null;
+        this.monthSchedule = {};
+        {% if current_user.id_lekarza %}
+        this.doctorId = {{ current_user.id_lekarza }};
+        {% else %}
+        this.doctorId = null;
+        {% endif %}
+        this.monthNames = [
+            'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
+            'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'
+        ];
+        this.init();
+    }
+    
+    init() {
+        this.updateMonthDisplay();
+        this.loadMonthSchedule();
+        this.setupForm();
+    }
+    
+    setupForm() {
+        var form = document.getElementById('wizytaForm');
+        var pacjentSelect = document.getElementById('id_pacjenta');
+        var submitBtn = document.getElementById('submitBtn');
+        var self = this;
+        
+        // Проверяем готовность формы
+        function checkFormReady() {
+            var pacjentSelected = pacjentSelect.value !== '';
+            var dateSelected = self.selectedSlot !== null;
+            submitBtn.disabled = !(pacjentSelected && dateSelected);
+        }
+        
+        pacjentSelect.addEventListener('change', checkFormReady);
+        
+        // Предотвращаем отправку формы без выбранного слота
+        form.addEventListener('submit', function(e) {
+            if (!self.selectedSlot) {
+                e.preventDefault();
+                alert('Proszę wybrać termin z kalendarza.');
+            }
+        });
+    }
+    
+    updateMonthDisplay() {
+        var monthYearEl = document.getElementById('calendarMonthYear');
+        monthYearEl.textContent = this.monthNames[this.currentDate.getMonth()] + ' ' + this.currentDate.getFullYear();
+        this.renderCalendar();
+    }
+    
+    renderCalendar() {
+        var calendarDays = document.getElementById('appointmentCalendarDays');
+        calendarDays.innerHTML = '';
+        
+        var year = this.currentDate.getFullYear();
+        var month = this.currentDate.getMonth();
+        
+        // Первый день месяца
+        var firstDay = new Date(year, month, 1);
+        var lastDay = new Date(year, month + 1, 0);
+        
+        // Определяем с какого дня недели начинать (понедельник = 0)
+        var startDay = (firstDay.getDay() + 6) % 7;
+        
+        var calendarHTML = '';
+        var dayCount = 0;
+        
+        // Создаем недели
+        for (var week = 0; week < 6; week++) {
+            calendarHTML += '<div class="row mb-1">';
+            
+            for (var day = 0; day < 7; day++) {
+                var cellDate = new Date(year, month, dayCount - startDay + 1);
+                var isCurrentMonth = cellDate.getMonth() === month;
+                var dateStr = cellDate.toISOString().split('T')[0];
+                var isToday = dateStr === new Date().toISOString().split('T')[0];
+                
+                if (dayCount < startDay || !isCurrentMonth) {
+                    // Пустая ячейка или дни других месяцев
+                    calendarHTML += '<div class="col appointment-day other-month"></div>';
+                } else {
+                    var dayNum = cellDate.getDate();
+                    var scheduleInfo = this.getScheduleInfo(dateStr);
+                    var cellClass = 'appointment-day current-month ' + scheduleInfo.cssClass;
+                    if (isToday) cellClass += ' today';
+                    
+                    var clickHandler = scheduleInfo.hasSchedule ? 'onclick="appointmentCalendar.showTimeSlots(\'' + dateStr + '\')"' : '';
+                    
+                    calendarHTML += '<div class="col ' + cellClass + '" ' + clickHandler + '>';
+                    calendarHTML += '<div class="day-number">' + dayNum + '</div>';
+                    calendarHTML += '<div class="day-info">' + scheduleInfo.text + '</div>';
+                    calendarHTML += '</div>';
+                }
+                
+                dayCount++;
+            }
+            
+            calendarHTML += '</div>';
+            
+            // Прекращаем если прошли все дни месяца
+            if (dayCount - startDay > lastDay.getDate()) break;
+        }
+        
+        calendarDays.innerHTML = calendarHTML;
+    }
+    
+    getScheduleInfo(dateStr) {
+        var schedule = this.monthSchedule[dateStr];
+        
+        if (!schedule) {
+            return { cssClass: 'no-schedule', text: 'Brak', hasSchedule: false };
+        }
+        
+        var availableCount = schedule.slots.filter(function(s) { return s.available; }).length;
+        var totalCount = schedule.slots.length;
+        
+        if (availableCount === totalCount) {
+            return { cssClass: 'all-available', text: 'Dostępne', hasSchedule: true };
+        } else if (availableCount === 0) {
+            return { cssClass: 'all-occupied', text: 'Zajęte', hasSchedule: true };
+        } else {
+            return { cssClass: 'mixed-schedule', text: availableCount + '/' + totalCount, hasSchedule: true };
+        }
+    }
+    
+    loadMonthSchedule() {
+        var self = this;
+        this.monthSchedule = {};
+        
+        var year = this.currentDate.getFullYear();
+        var month = this.currentDate.getMonth();
+        var startDate = new Date(year, month, 1);
+        var endDate = new Date(year, month + 1, 0);
+        
+        var promises = [];
+        
+        for (var d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+            var dateStr = d.toISOString().split('T')[0];
+            promises.push(this.loadDaySchedule(dateStr));
+        }
+        
+        Promise.all(promises).then(function() {
+            self.renderCalendar();
+        });
+    }
+    
+    loadDaySchedule(dateStr) {
+        var self = this;
+        return fetch('/lekarz/api/my-schedule?date=' + dateStr)
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                if (data.slots && data.slots.length > 0) {
+                    self.monthSchedule[dateStr] = data;
+                }
+            })
+            .catch(function(error) {
+                console.error('Error loading schedule for ' + dateStr + ':', error);
+            });
+    }
+    
+    showTimeSlots(dateStr) {
+        var modal = new bootstrap.Modal(document.getElementById('timeSlotModal'));
+        var modalTitle = document.getElementById('timeSlotModalLabel');
+        var modalContent = document.getElementById('timeSlotsContent');
+        
+        modalTitle.textContent = 'Wybierz godzinę - ' + this.formatPolishDate(dateStr);
+        modalContent.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
+        
+        modal.show();
+        
+        var schedule = this.monthSchedule[dateStr];
+        if (schedule && schedule.slots) {
+            this.renderTimeSlots(schedule.slots, dateStr, modalContent);
+        } else {
+            modalContent.innerHTML = '<div class="alert alert-info">Brak dostępnych terminów na ten dzień.</div>';
+        }
+    }
+    
+    renderTimeSlots(slots, dateStr, container) {
+        var availableSlots = slots.filter(function(slot) { return slot.available; });
+        
+        if (availableSlots.length === 0) {
+            container.innerHTML = '<div class="alert alert-warning">Wszystkie terminy na ten dzień są zajęte.</div>';
+            return;
+        }
+        
+        var slotsHtml = slots.map(function(slot) {
+            var badgeClass = slot.available ? 'bg-success' : 'bg-danger';
+            var clickHandler = slot.available ? 'onclick="appointmentCalendar.selectTimeSlot(\'' + dateStr + '\', \'' + slot.time + '\', \'' + slot.datetime + '\')"' : '';
+            var cursor = slot.available ? 'pointer' : 'default';
+            var patientInfo = slot.available ? 'Dostępne' : (slot.patient || 'Zajęte');
+            var disabled = slot.available ? '' : 'opacity-50';
+            
+            return '<div class="col-md-3 col-sm-4 col-6 mb-2">' +
+                   '<div class="badge ' + badgeClass + ' w-100 p-2 ' + disabled + '" style="cursor: ' + cursor + '" ' + clickHandler + '>' +
+                   '<div class="fw-bold">' + slot.time + '</div>' +
+                   '<small>' + patientInfo + '</small>' +
+                   '</div>' +
+                   '</div>';
+        }).join('');
+        
+        container.innerHTML = '<div class="mb-3">' +
+                             '<h6>Dostępne terminy (15 minut każdy):</h6>' +
+                             '<p class="text-muted">Kliknij na zielony termin aby go wybrać.</p>' +
+                             '</div>' +
+                             '<div class="row g-2">' + slotsHtml + '</div>';
+    }
+    
+    selectTimeSlot(dateStr, timeStr, datetime) {
+        this.selectedSlot = { dateStr: dateStr, timeStr: timeStr, datetime: datetime };
+        
+        // Обновляем поле формы
+        var dateInput = document.getElementById('data_wizyty');
+        dateInput.value = datetime;
+        
+        // Показываем информацию о выбранном времени
+        var selectedInfo = document.getElementById('selectedTimeInfo');
+        var selectedText = document.getElementById('selectedTimeText');
+        selectedText.innerHTML = '<strong>' + this.formatPolishDate(dateStr) + '</strong> o <strong>' + timeStr + '</strong>';
+        selectedInfo.style.display = 'block';
+        
+        // Закрываем модал
+        var modal = bootstrap.Modal.getInstance(document.getElementById('timeSlotModal'));
+        modal.hide();
+        
+        // Обновляем кнопку отправки
+        var submitBtn = document.getElementById('submitBtn');
+        var pacjentSelected = document.getElementById('id_pacjenta').value !== '';
+        submitBtn.disabled = !pacjentSelected;
+        
+        // Показываем временное уведомление
+        this.showSelectionNotification(dateStr, timeStr);
+    }
+    
+    showSelectionNotification(dateStr, timeStr) {
+        // Создаем временное уведомление
+        var notification = document.createElement('div');
+        notification.className = 'alert alert-success position-fixed';
+        notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        notification.innerHTML = '<strong>Termin wybrany!</strong><br>' +
+                                this.formatPolishDate(dateStr) + ' o ' + timeStr;
+        
+        document.body.appendChild(notification);
+        
+        // Убираем через 3 секунды
+        setTimeout(function() {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 3000);
+    }
+    
+    previousMonth() {
+        this.currentDate.setMonth(this.currentDate.getMonth() - 1);
+        this.updateMonthDisplay();
+        this.loadMonthSchedule();
+    }
+    
+    nextMonth() {
+        this.currentDate.setMonth(this.currentDate.getMonth() + 1);
+        this.updateMonthDisplay();
+        this.loadMonthSchedule();
+    }
+    
+    formatPolishDate(dateStr) {
+        var months = [
+            'stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca',
+            'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'
+        ];
+        
+        var date = new Date(dateStr);
+        var day = date.getDate();
+        var month = months[date.getMonth()];
+        var year = date.getFullYear();
+        
+        return day + ' ' + month + ' ' + year;
+    }
+}
+
+// Инициализация
+var appointmentCalendar;
+document.addEventListener('DOMContentLoaded', function() {
+    appointmentCalendar = new AppointmentCalendar();
+});
+</script>
+
+<style>
+.appointment-day {
+    min-height: 80px;
+    border: 1px solid #dee2e6;
+    padding: 6px;
+    margin: 1px;
+    border-radius: 5px;
+    transition: all 0.2s;
+    font-size: 12px;
+}
+
+.appointment-day.current-month {
+    background-color: #fff;
+}
+
+.appointment-day.other-month {
+    background-color: #f8f9fa;
+}
+
+.appointment-day.today {
+    border: 2px solid #007bff;
+    font-weight: bold;
+}
+
+.appointment-day.no-schedule {
+    background-color: #f8f9fa;
+    color: #6c757d;
+}
+
+.appointment-day.all-available {
+    background-color: #d4edda;
+    border-color: #28a745;
+    cursor: pointer;
+}
+
+.appointment-day.all-occupied {
+    background-color: #f8d7da;
+    border-color: #dc3545;
+    cursor: pointer;
+}
+
+.appointment-day.mixed-schedule {
+    background-color: #fff3cd;
+    border-color: #ffc107;
+    cursor: pointer;
+}
+
+.appointment-day:hover.current-month {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.day-number {
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 3px;
+}
+
+.day-info {
+    font-size: 10px;
+    line-height: 1.1;
+}
+
+.badge:hover {
+    transform: scale(1.05);
+    transition: transform 0.1s;
+}
+
+#data_wizyty:read-only {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+}
+
+.opacity-50 {
+    opacity: 0.5;
+}
+</style>
+{% endblock %}
