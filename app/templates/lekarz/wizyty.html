@@ -38,7 +38,7 @@
                             </td>
                             <td>
                                 {% if wizyta.status == 'zaplanowana' %}
-                                <span class="badge bg-primary">Zaplanowana</span>
+                                <span class="badge bg-warning">Zaplanowana</span>
                                 {% elif wizyta.status == 'zakonczona' %}
                                 <span class="badge bg-success">Zakończona</span>
                                 {% elif wizyta.status == 'anulowana' %}
@@ -63,7 +63,8 @@
                                         <i class="fas fa-user"></i>
                                     </a>
                                     {% if wizyta.status == 'zaplanowana' %}
-                                    <button class="btn btn-outline-success" title="Zakończ wizytę">
+                                    <button class="btn btn-outline-success" title="Zakończ wizytę"
+                                            onclick="pokazZakonczWizyte({{ wizyta.id_wizyty }}, '{{ wizyta.data_wizyty.strftime('%d.%m.%Y %H:%M') }}', '{{ wizyta.pacjent.imie }} {{ wizyta.pacjent.nazwisko }}')">
                                         <i class="fas fa-check"></i>
                                     </button>
                                     {% endif %}
@@ -94,6 +95,60 @@
     </div>
 </div>
 
+<!-- Modal kończenia wizyty -->
+<div class="modal fade" id="zakonczWizyteModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Zakończ wizytę</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" id="zakonczWizyteForm">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <strong>Wizyta:</strong> <span id="wizytaInfo"></span><br>
+                        <strong>Pacjent:</strong> <span id="pacjentInfo"></span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notatki_wizyty" class="form-label">Notatki z wizyty</label>
+                        <textarea name="notatki_wizyty" id="notatki_wizyty" class="form-control" rows="3"
+                                  placeholder="Przebieg wizyty, obserwacje..."></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="diagnoza" class="form-label">Diagnoza (dodaj do historii)</label>
+                        <input type="text" name="diagnoza" id="diagnoza" class="form-control"
+                               placeholder="np. Zapalenie gardła">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notatki_historia" class="form-label">Notatki do historii</label>
+                        <textarea name="notatki_historia" id="notatki_historia" class="form-control" rows="2"
+                                  placeholder="Zalecenia, plan leczenia..."></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="leki" class="form-label">Recepta (opcjonalnie)</label>
+                        <textarea name="leki" id="leki" class="form-control" rows="3"
+                                  placeholder="Przepisane leki i dawkowanie..."></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="instrukcje" class="form-label">Instrukcje do recepty</label>
+                        <textarea name="instrukcje" id="instrukcje" class="form-control" rows="2"
+                                  placeholder="Dodatkowe instrukcje..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                    <button type="submit" class="btn btn-success">Zakończ wizytę</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 // Инициализация tooltips
@@ -101,5 +156,14 @@ var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggl
 var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
   return new bootstrap.Tooltip(tooltipTriggerEl)
 })
+
+function pokazZakonczWizyte(wizytaId, wizytaInfo, pacjentInfo) {
+    document.getElementById('wizytaInfo').textContent = wizytaInfo;
+    document.getElementById('pacjentInfo').textContent = pacjentInfo;
+    document.getElementById('zakonczWizyteForm').action = '/lekarz/wizyta/' + wizytaId + '/zakoncz';
+    
+    var modal = new bootstrap.Modal(document.getElementById('zakonczWizyteModal'));
+    modal.show();
+}
 </script>
 {% endblock %}

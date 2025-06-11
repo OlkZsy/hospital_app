@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, redirect, url_for, render_template
 from config import Config
 from app.extensions import db, login_manager
 
@@ -40,5 +40,16 @@ def create_app():
     app.register_blueprint(lekarz_bp)
     app.register_blueprint(pacjent_bp)
     app.register_blueprint(administrator_bp)
+
+    # Главная страница - переадресация на логин
+    @app.route('/')
+    def index():
+        return redirect(url_for('auth_bp.login'))
+
+    # Дополнительные переадресации
+    @app.route('/index')
+    @app.route('/home')
+    def home():
+        return redirect(url_for('auth_bp.login'))
 
     return app

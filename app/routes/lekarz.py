@@ -1,13 +1,14 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app.models.lekarz import Lekarz
 from app.models.pacjent import Pacjent
 from app.models.wizyta import Wizyta
-from app.models.harmonogram import HarmonogramLekarza 
+from app.models.harmonogram import HarmonogramLekarza
+from app.models.historia import HistoriaMedyczna
+from app.models.recepta import Recepta
 from app.extensions import db
-from datetime import datetime
+from datetime import datetime, timedelta, time, date
 
-# ИЗМЕНЕНО: Blueprint теперь называется lekarz_bp
 lekarz_bp = Blueprint('lekarz_bp', __name__, url_prefix='/lekarz')
 
 def is_lekarz():
@@ -19,18 +20,6 @@ def is_lekarz():
 @lekarz_bp.route('/dashboard')
 @login_required
 def dashboard():
-    # Отладочная информация
-    print("=== DEBUG INFO ===")
-    print(f"current_user: {current_user}")
-    print(f"current_user type: {type(current_user)}")
-    print(f"current_user.__class__: {current_user.__class__}")
-    print(f"current_user.__class__.__name__: {current_user.__class__.__name__}")
-    print(f"hasattr id_lekarza: {hasattr(current_user, 'id_lekarza')}")
-    if hasattr(current_user, '__tablename__'):
-        print(f"tablename: {current_user.__tablename__}")
-    print(f"dir(current_user): {[attr for attr in dir(current_user) if not attr.startswith('_')]}")
-    print("==================")
-    
     if not is_lekarz():
         flash('Brak dostępu. Ta strona jest tylko dla lekarzy.', 'danger')
         return redirect(url_for('auth_bp.login'))
@@ -51,7 +40,7 @@ def wizyty():
 @login_required
 def pacjenci():
     if not is_lekarz():
-        flash('Brak dostępu. Ta strona jest только для lekarzy.', 'danger')
+        flash('Brak dostępu. Ta strona jest tylko dla lekarzy.', 'danger')
         return redirect(url_for('auth_bp.login'))
     
     # Находим всех пациентов, у которых были визиты к этому врачу
@@ -106,10 +95,11 @@ def create_wizyta():
 @login_required
 def kalendarz():
     if not is_lekarz():
-        flash('Brak dostępu. Ta strona jest только dla lekarzy.', 'danger')
+        flash('Brak dostępu. Ta strona jest tylko dla lekarzy.', 'danger')
         return redirect(url_for('auth_bp.login'))
     return render_template('partials/calendar_simple.html')
 
+# НОВАЯ улучшенная функция лечения пациента
 @lekarz_bp.route('/pacjent/<int:id_pacjenta>/leczenie')
 @login_required
 def pacjent_leczenie(id_pacjenta):
@@ -118,20 +108,139 @@ def pacjent_leczenie(id_pacjenta):
         return redirect(url_for('auth_bp.login'))
     
     pacjent = Pacjent.query.get_or_404(id_pacjenta)
-    historia = pacjent.historia
-    recepty = pacjent.recepty
+    
+    # Sprawdź czy lekarz ma prawo do tego pacjenta (miał z nim wizytę)
+    wizyta_check = Wizyta.query.filter_by(
+        id_lekarza=current_user.id_lekarza,
+        id_pacjenta=id_pacjenta
+    ).first()
+    
+    if not wizyta_check:
+        flash('Nie masz uprawnień do przeglądania tego pacjenta.', 'danger')
+        return redirect(url_for('lekarz_bp.pacjenci'))
+    
+    # Pobierz dane pacjenta
+    historia = HistoriaMedyczna.query.filter_by(id_pacjenta=id_pacjenta).order_by(HistoriaMedyczna.data_wpisu.desc()).all()
+    recepty = Recepta.query.filter_by(id_pacjenta=id_pacjenta).order_by(Recepta.data_wystawienia.desc()).all()
+    wizyty = Wizyta.query.filter_by(id_pacjenta=id_pacjenta).order_by(Wizyta.data_wizyty.desc()).all()
     
     return render_template('lekarz/pacjent_leczenie.html', 
                          pacjent=pacjent, 
                          historia=historia, 
-                         recepty=recepty)
+                         recepty=recepty,
+                         wizyty=wizyty)
 
+@lekarz_bp.route('/pacjent/<int:id_pacjenta>/dodaj-historie', methods=['POST'])
+@login_required
+def dodaj_historie(id_pacjenta):
+    if not is_lekarz():
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    try:
+        diagnoza = request.form['diagnoza']
+        notatki = request.form.get('notatki', '')
+        
+        wpis = HistoriaMedyczna(
+            id_pacjenta=id_pacjenta,
+            id_lekarza=current_user.id_lekarza,
+            data_wpisu=date.today(),
+            diagnoza=diagnoza,
+            notatki=notatki
+        )
+        
+        db.session.add(wpis)
+        db.session.commit()
+        
+        flash('Wpis do historii medycznej został dodany.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Błąd przy dodawaniu wpisu: {str(e)}', 'danger')
+    
+    return redirect(url_for('lekarz_bp.pacjent_leczenie', id_pacjenta=id_pacjenta))
 
+@lekarz_bp.route('/pacjent/<int:id_pacjenta>/dodaj-recepte', methods=['POST'])
+@login_required
+def dodaj_recepte(id_pacjenta):
+    if not is_lekarz():
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    try:
+        leki = request.form['leki']
+        instrukcje = request.form.get('instrukcje', '')
+        id_wizyty = request.form.get('id_wizyty')
+        
+        recepta = Recepta(
+            id_pacjenta=id_pacjenta,
+            id_lekarza=current_user.id_lekarza,
+            id_wizyty=id_wizyty if id_wizyty else None,
+            data_wystawienia=date.today(),
+            leki=leki,
+            instrukcje=instrukcje
+        )
+        
+        db.session.add(recepta)
+        db.session.commit()
+        
+        flash('Recepta została wystawiona.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Błąd przy wystawianiu recepty: {str(e)}', 'danger')
+    
+    return redirect(url_for('lekarz_bp.pacjent_leczenie', id_pacjenta=id_pacjenta))
 
-#////////////////////////////////////////////////
-from flask import jsonify
-from datetime import datetime, timedelta, time
+@lekarz_bp.route('/wizyta/<int:id_wizyty>/zakoncz', methods=['POST'])
+@login_required
+def zakoncz_wizyte(id_wizyty):
+    if not is_lekarz():
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    try:
+        wizyta = Wizyta.query.get_or_404(id_wizyty)
+        
+        # Sprawdź czy to wizyta tego lekarza
+        if wizyta.id_lekarza != current_user.id_lekarza:
+            flash('Nie masz uprawnień do tej wizyty.', 'danger')
+            return redirect(url_for('lekarz_bp.wizyty'))
+        
+        # Aktualizuj status i notatki
+        wizyta.status = 'zakonczona'
+        wizyta.notatki = request.form.get('notatki_wizyty', wizyta.notatki)
+        
+        # Dodaj wpis do historii jeśli podano
+        diagnoza = request.form.get('diagnoza')
+        if diagnoza:
+            historia = HistoriaMedyczna(
+                id_pacjenta=wizyta.id_pacjenta,
+                id_lekarza=current_user.id_lekarza,
+                data_wpisu=date.today(),
+                diagnoza=diagnoza,
+                notatki=request.form.get('notatki_historia', '')
+            )
+            db.session.add(historia)
+        
+        # Dodaj receptę jeśli podano
+        leki = request.form.get('leki')
+        if leki:
+            recepta = Recepta(
+                id_pacjenta=wizyta.id_pacjenta,
+                id_lekarza=current_user.id_lekarza,
+                id_wizyty=wizyta.id_wizyty,
+                data_wystawienia=date.today(),
+                leki=leki,
+                instrukcje=request.form.get('instrukcje', '')
+            )
+            db.session.add(recepta)
+        
+        db.session.commit()
+        flash('Wizyta została zakończona.', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Błąd przy kończeniu wizyty: {str(e)}', 'danger')
+    
+    return redirect(url_for('lekarz_bp.wizyty'))
 
+# API ENDPOINTS
 @lekarz_bp.route('/api/my-schedule')
 @login_required
 def api_my_schedule():
@@ -274,11 +383,6 @@ def api_book_slot():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
-
-
-
-
-# Добавить в конец файла app/routes/lekarz.py:
 
 @lekarz_bp.route('/api/patients')
 @login_required
