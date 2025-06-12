@@ -21,3 +21,6 @@ class Pacjent(UserMixin, db.Model):
 
     def get_id(self):
         return str(self.id_pacjenta)
+    
+
+    

@@ -44,6 +44,7 @@ def register_user():
         hashed_password = generate_password_hash(haslo)
 
         if rola == 'lekarz':
+            specjalizacja = form.specjalizacja.data
             # Генерируем уникальный номер лицензии
             import random
             while True:

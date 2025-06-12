@@ -186,6 +186,11 @@ class AppointmentCalendar {
                 alert('Proszę wybrać termin z kalendarza.');
             }
         });
+
+        showAppointmentDetails(appointmentId) {
+            // Простая реализация - можно расширить
+            alert('Szczegóły wizyty #' + appointmentId + ' - funkcja w budowie');
+        }
     }
     
     updateMonthDisplay() {
@@ -195,80 +200,233 @@ class AppointmentCalendar {
     }
     
     renderCalendar() {
-        var calendarDays = document.getElementById('appointmentCalendarDays');
-        calendarDays.innerHTML = '';
+    var calendarDays = document.getElementById('appointmentCalendarDays');
+    calendarDays.innerHTML = '';
+    
+    var year = this.currentDate.getFullYear();
+    var month = this.currentDate.getMonth();
+    
+    // Первый и последний день месяца
+    var firstDay = new Date(year, month, 1);
+    var lastDay = new Date(year, month + 1, 0);
+    
+    // Определяем с какого дня недели начинать (понедельник = 0)
+    var startDay = (firstDay.getDay() + 6) % 7; // Преобразуем к понедельнику = 0
+    
+    var calendarHTML = '';
+    var dayCount = 0;
+    
+    // Создаем недели
+    for (var week = 0; week < 6; week++) {
+        calendarHTML += '<div class="row mb-1">';
         
-        var year = this.currentDate.getFullYear();
-        var month = this.currentDate.getMonth();
-        
-        // Первый день месяца
-        var firstDay = new Date(year, month, 1);
-        var lastDay = new Date(year, month + 1, 0);
-        
-        // Определяем с какого дня недели начинать (понедельник = 0)
-        var startDay = (firstDay.getDay() + 6) % 7;
-        
-        var calendarHTML = '';
-        var dayCount = 0;
-        
-        // Создаем недели
-        for (var week = 0; week < 6; week++) {
-            calendarHTML += '<div class="row mb-1">';
-            
-            for (var day = 0; day < 7; day++) {
-                var cellDate = new Date(year, month, dayCount - startDay + 1);
-                var isCurrentMonth = cellDate.getMonth() === month;
-                var dateStr = cellDate.toISOString().split('T')[0];
-                var isToday = dateStr === new Date().toISOString().split('T')[0];
-                
-                if (dayCount < startDay || !isCurrentMonth) {
-                    // Пустая ячейка или дни других месяцев
-                    calendarHTML += '<div class="col appointment-day other-month"></div>';
-                } else {
-                    var dayNum = cellDate.getDate();
-                    var scheduleInfo = this.getScheduleInfo(dateStr);
+        for (var day = 0; day < 7; day++) {
+            if (dayCount < startDay) {
+                // Дни предыдущего месяца
+                calendarHTML += '<div class="col appointment-day other-month"></div>';
+            } else {
+                var dayOfMonth = dayCount - startDay + 1;
+                if (dayOfMonth <= lastDay.getDate()) {
+                    // Дни текущего месяца
+                    var cellDate = new Date(year, month, dayOfMonth);
+                    var dateStr = year + '-' + 
+                                String(month + 1).padStart(2, '0') + '-' + 
+                                String(dayOfMonth).padStart(2, '0');
+                    var isToday = dateStr === new Date().toISOString().split('T')[0];
+                    var isPast = cellDate < new Date().setHours(0,0,0,0);
+                    
+                    var scheduleInfo = this.getScheduleInfo(dateStr, isPast);
                     var cellClass = 'appointment-day current-month ' + scheduleInfo.cssClass;
                     if (isToday) cellClass += ' today';
                     
-                    var clickHandler = scheduleInfo.hasSchedule ? 'onclick="appointmentCalendar.showTimeSlots(\'' + dateStr + '\')"' : '';
+                    var clickHandler = 'onclick="appointmentCalendar.showDayInfo(\'' + dateStr + '\')"';
                     
                     calendarHTML += '<div class="col ' + cellClass + '" ' + clickHandler + '>';
-                    calendarHTML += '<div class="day-number">' + dayNum + '</div>';
+                    calendarHTML += '<div class="day-number">' + dayOfMonth + '</div>';
                     calendarHTML += '<div class="day-info">' + scheduleInfo.text + '</div>';
                     calendarHTML += '</div>';
+                } else {
+                    // Дни следующего месяца
+                    calendarHTML += '<div class="col appointment-day other-month"></div>';
                 }
-                
-                dayCount++;
             }
             
-            calendarHTML += '</div>';
+            dayCount++;
+        }
+        
+        calendarHTML += '</div>';
+        
+        // Прекращаем если прошли все дни месяца
+        if (dayCount - startDay > lastDay.getDate()) break;
+    }
+    
+    calendarDays.innerHTML = calendarHTML;
+}
+
+getScheduleInfo(dateStr, isPast) {
+    var schedule = this.monthSchedule[dateStr];
+    
+    if (!schedule) {
+        // Всегда серые для дней без расписания  
+        return { cssClass: 'no-schedule', text: 'Brak harmonogramu', hasSchedule: false };
+    }
+    
+    // Подсчитываем общее количество визит (занятые слоты)
+    var totalAppointments = schedule.slots.filter(function(s) { return !s.available; }).length;
+    
+    if (isPast) {
+        return { 
+            cssClass: 'past-day', 
+            text: totalAppointments > 0 ?  ' Wizyty: '+ totalAppointments : 'Brak wizyt', 
+            hasSchedule: true 
+        };
+    }
+    
+    var now = new Date();
+    var currentTime = now.getTime();
+    var bufferMinutes = 15;
+    
+    var availableSlots = schedule.slots.filter(function(slot) { 
+        var slotDateTime = new Date(slot.datetime);
+        var isNotInPast = slotDateTime.getTime() > (currentTime + bufferMinutes * 60 * 1000);
+        return slot.available && isNotInPast; 
+    });
+    
+    if (totalAppointments === 0) {
+        return { 
+            cssClass: availableSlots.length > 0 ? 'all-available' : 'no-schedule', 
+            text: availableSlots.length > 0 ? 'Dostępne' : 'Brak harmonogramu', 
+            hasSchedule: availableSlots.length > 0 
+        };
+    } else {
+    return { 
+        cssClass: availableSlots.length > 0 ? 'mixed-schedule' : 'all-occupied', 
+        text: 'Wizyty: ' + totalAppointments  + '<br>Dostępne: ' + availableSlots.length, 
+        hasSchedule: true 
+    };
+}
+}
+
+
+showDayInfo(dateStr) {
+    var self = this;
+    var modal = new bootstrap.Modal(document.getElementById('timeSlotModal'));
+    var modalTitle = document.getElementById('timeSlotModalLabel');
+    var modalContent = document.getElementById('timeSlotsContent');
+    
+    modalTitle.textContent = 'Wizyty dnia ' + this.formatPolishDate(dateStr);
+    modalContent.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
+    
+    modal.show();
+    
+    var schedule = this.monthSchedule[dateStr];
+    if (schedule && schedule.slots) {
+        this.renderDayInfo(schedule.slots, dateStr, modalContent);
+    } else {
+        // Загружаем расписание если его нет
+        fetch('/lekarz/api/my-schedule?date=' + dateStr)
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                if (data.slots && data.slots.length > 0) {
+                    self.renderDayInfo(data.slots, dateStr, modalContent);
+                } else {
+                    modalContent.innerHTML = '<div class="alert alert-info">Brak harmonogramu na ten dzień.</div>';
+                }
+            })
+            .catch(function(error) {
+                modalContent.innerHTML = '<div class="alert alert-danger">Błąd ładowania harmonogramu</div>';
+            });
+    }
+}
+
+renderDayInfo(slots, dateStr, container) {
+    var appointments = slots.filter(function(slot) { return !slot.available; });
+    var availableSlots = slots.filter(function(slot) { return slot.available; });
+    
+    var now = new Date();
+    var selectedDate = new Date(dateStr + 'T00:00:00');
+    var isPastDay = selectedDate < new Date().setHours(0,0,0,0);
+    
+    var html = '';
+    
+    // ВСЕГДА показываем визиты если они есть (и для прошедших, и для будущих дней)
+    if (appointments.length > 0) {
+        html += '<div class="mb-4">';
+        html += '<h6><i class="fas fa-calendar-check ' + (isPastDay ? 'text-secondary' : 'text-success') + '"></i> ' + 
+                (isPastDay ? 'Wizyty które były tego dnia:' : 'Wizyty tego dnia:') + '</h6>';
+        html += '<div class="list-group">';
+        
+        // Сортируем визиты по времени
+        appointments.sort(function(a, b) {
+            return a.time.localeCompare(b.time);
+        });
+        
+        appointments.forEach(function(appointment) {
+            var statusClass = isPastDay ? 'list-group-item-secondary' : 'list-group-item-primary';
+            html += '<div class="list-group-item ' + statusClass + ' d-flex justify-content-between align-items-center">' +
+                   '<div>' +
+                   '<strong>' + appointment.time + '</strong>' +
+                   '<br><small>' + (appointment.patient || 'Pacjent') + '</small>' +
+                   '</div>';
             
-            // Прекращаем если прошли все дни месяца
-            if (dayCount - startDay > lastDay.getDate()) break;
-        }
+            if (appointment.appointment_id && !isPastDay) {
+                html += '<button class="btn btn-sm btn-outline-info" onclick="appointmentCalendar.showAppointmentDetails(' + appointment.appointment_id + ')">' +
+                       '<i class="fas fa-eye"></i> Szczegóły' +
+                       '</button>';
+            }
+            
+            html += '</div>';
+        });
         
-        calendarDays.innerHTML = calendarHTML;
+        html += '</div></div>';
     }
     
-    getScheduleInfo(dateStr) {
-        var schedule = this.monthSchedule[dateStr];
+    // Для будущих дней показываем доступные слоты
+    if (!isPastDay && availableSlots.length > 0) {
+        var currentTime = now.getTime();
+        var bufferMinutes = 15;
         
-        if (!schedule) {
-            return { cssClass: 'no-schedule', text: 'Brak', hasSchedule: false };
-        }
+        var futureSlots = availableSlots.filter(function(slot) {
+            var slotDateTime = new Date(slot.datetime);
+            return slotDateTime.getTime() > (currentTime + bufferMinutes * 60 * 1000);
+        });
         
-        var availableCount = schedule.slots.filter(function(s) { return s.available; }).length;
-        var totalCount = schedule.slots.length;
-        
-        if (availableCount === totalCount) {
-            return { cssClass: 'all-available', text: 'Dostępne', hasSchedule: true };
-        } else if (availableCount === 0) {
-            return { cssClass: 'all-occupied', text: 'Zajęte', hasSchedule: true };
-        } else {
-            return { cssClass: 'mixed-schedule', text: availableCount + '/' + totalCount, hasSchedule: true };
+        if (futureSlots.length > 0) {
+            html += '<div class="mb-3">';
+            html += '<h6><i class="fas fa-plus-circle text-success"></i> Dostępne terminy:</h6>';
+            html += '<div class="row g-2">';
+            
+            futureSlots.forEach(function(slot) {
+                html += '<div class="col-md-3 col-sm-4 col-6 mb-2">' +
+                       '<button class="btn btn-success btn-sm w-100" onclick="appointmentCalendar.selectTimeSlot(\'' + dateStr + '\', \'' + slot.time + '\', \'' + slot.datetime + '\')">' +
+                       '<div class="fw-bold">' + slot.time + '</div>' +
+                       '<small>Dostępne</small>' +
+                       '</button>' +
+                       '</div>';
+            });
+            
+            html += '</div></div>';
+        } else if (availableSlots.length > 0) {
+            html += '<div class="alert alert-warning">Wszystkie dostępne terminy na ten dzień już minęły.</div>';
         }
     }
     
+    // Если НЕТ ВИЗИТ ВООБЩЕ - показываем соответствующее сообщение
+    if (appointments.length === 0) {
+        html = '<div class="alert alert-info text-center">' +
+               '<i class="fas fa-calendar-times fa-2x mb-2"></i>' +
+               '<h6>Brak wizyt</h6>' +
+               '<p class="mb-0">' + (isPastDay ? 'Nie było żadnych wizyt tego dnia.' : 'Nie ma żadnych wizyt na ten dzień.') + '</p>' +
+               '</div>';
+    }
+    
+    container.innerHTML = html;
+}
+    
+
+
     loadMonthSchedule() {
         var self = this;
         this.monthSchedule = {};
@@ -325,34 +483,66 @@ class AppointmentCalendar {
     }
     
     renderTimeSlots(slots, dateStr, container) {
-        var availableSlots = slots.filter(function(slot) { return slot.available; });
-        
-        if (availableSlots.length === 0) {
+    var now = new Date();
+    var currentTime = now.getTime();
+    var bufferMinutes = 15; // Минимум 15 минут от текущего времени
+    
+    var availableSlots = slots.filter(function(slot) { 
+        var slotDateTime = new Date(slot.datetime);
+        var isNotInPast = slotDateTime.getTime() > (currentTime + bufferMinutes * 60 * 1000);
+        return slot.available && isNotInPast; 
+    });
+    
+    if (availableSlots.length === 0) {
+        // Проверим есть ли вообще доступные слоты (без учета времени)
+        var allAvailableSlots = slots.filter(function(slot) { return slot.available; });
+        if (allAvailableSlots.length === 0) {
             container.innerHTML = '<div class="alert alert-warning">Wszystkie terminy na ten dzień są zajęte.</div>';
-            return;
+        } else {
+            container.innerHTML = '<div class="alert alert-info">Wszystkie dostępne terminy na ten dzień już minęły. Wybierz inną datę.</div>';
+        }
+        return;
+    }
+    
+    var slotsHtml = slots.map(function(slot) {
+        var slotDateTime = new Date(slot.datetime);
+        var slotTime = slotDateTime.getTime();
+        var isInPast = slotTime <= (currentTime + bufferMinutes * 60 * 1000);
+        
+        var badgeClass, clickHandler = '', cursor = 'default', patientInfo;
+        
+        if (isInPast && slot.available) {
+            // Прошедшее время - серый
+            badgeClass = 'bg-secondary';
+            patientInfo = 'Czas minął';
+            cursor = 'not-allowed';
+        } else if (slot.available) {
+            badgeClass = 'bg-success';
+            patientInfo = 'Dostępne';
+            clickHandler = 'onclick="appointmentCalendar.selectTimeSlot(\'' + dateStr + '\', \'' + slot.time + '\', \'' + slot.datetime + '\')"';
+            cursor = 'pointer';
+        } else {
+            badgeClass = 'bg-danger';
+            patientInfo = slot.patient || 'Zajęte';
         }
         
-        var slotsHtml = slots.map(function(slot) {
-            var badgeClass = slot.available ? 'bg-success' : 'bg-danger';
-            var clickHandler = slot.available ? 'onclick="appointmentCalendar.selectTimeSlot(\'' + dateStr + '\', \'' + slot.time + '\', \'' + slot.datetime + '\')"' : '';
-            var cursor = slot.available ? 'pointer' : 'default';
-            var patientInfo = slot.available ? 'Dostępne' : (slot.patient || 'Zajęte');
-            var disabled = slot.available ? '' : 'opacity-50';
-            
-            return '<div class="col-md-3 col-sm-4 col-6 mb-2">' +
-                   '<div class="badge ' + badgeClass + ' w-100 p-2 ' + disabled + '" style="cursor: ' + cursor + '" ' + clickHandler + '>' +
-                   '<div class="fw-bold">' + slot.time + '</div>' +
-                   '<small>' + patientInfo + '</small>' +
-                   '</div>' +
-                   '</div>';
-        }).join('');
+        var opacity = (isInPast && slot.available) ? '0.5' : '1';
+        var disabled = (isInPast && slot.available) ? 'opacity-50' : '';
         
-        container.innerHTML = '<div class="mb-3">' +
-                             '<h6>Dostępne terminy (15 minut każdy):</h6>' +
-                             '<p class="text-muted">Kliknij na zielony termin aby go wybrać.</p>' +
-                             '</div>' +
-                             '<div class="row g-2">' + slotsHtml + '</div>';
-    }
+        return '<div class="col-md-3 col-sm-4 col-6 mb-2">' +
+               '<div class="badge ' + badgeClass + ' w-100 p-2 ' + disabled + '" style="cursor: ' + cursor + '; opacity: ' + opacity + '" ' + clickHandler + '>' +
+               '<div class="fw-bold">' + slot.time + '</div>' +
+               '<small>' + patientInfo + '</small>' +
+               '</div>' +
+               '</div>';
+    }).join('');
+    
+    container.innerHTML = '<div class="mb-3">' +
+                         '<h6>Dostępne terminy (15 minut każdy):</h6>' +
+                         '<p class="text-muted">Kliknij na zielony termin aby go wybrać. Szare terminy już minęły.</p>' +
+                         '</div>' +
+                         '<div class="row g-2">' + slotsHtml + '</div>';
+}
     
     selectTimeSlot(dateStr, timeStr, datetime) {
         this.selectedSlot = { dateStr: dateStr, timeStr: timeStr, datetime: datetime };
@@ -451,10 +641,7 @@ document.addEventListener('DOMContentLoaded', function() {
     background-color: #f8f9fa;
 }
 
-.appointment-day.today {
-    border: 2px solid #007bff;
-    font-weight: bold;
-}
+
 
 .appointment-day.no-schedule {
     background-color: #f8f9fa;
@@ -507,6 +694,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .opacity-50 {
     opacity: 0.5;
+}
+.appointment-day.past-day {
+    background-color: #f8d7da;
+    border-color: #dc3545;
+    cursor: pointer;
+    color: #721c24;
+}
+
+.appointment-day.past-day:hover {
+    background-color: #f1aeb5;
+}
+
+.appointment-day.today {
+    border: 2px solid #007bff;
+    font-weight: bold;
+    box-shadow: 0 0 10px rgba(0,123,255,0.3);
 }
 </style>
 {% endblock %}

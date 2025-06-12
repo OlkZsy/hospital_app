@@ -1,23 +1,358 @@
-<h2>Moje Wizyty</h2>
-<table border="1">
-  <thead>
-    <tr>
-      <th>ID</th>
-      <th>Data</th>
-      <th>Status</th>
-      <th>Lekarz</th>
-      <th>Notatki</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for w in wizyty %}
-    <tr>
-      <td>{{ w.id_wizyty }}</td>
-      <td>{{ w.data_wizyty }}</td>
-      <td>{{ w.status }}</td>
-      <td>{{ w.lekarz.imie }} {{ w.lekarz.nazwisko }}</td>
-      <td>{{ w.notatki or '' }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+{% extends 'base.html' %}
+
+{% block content %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Moje wizyty</h2>
+        <a href="{{ url_for('pacjent_bp.zapisz_sie') }}" class="btn btn-success">
+            <i class="fas fa-plus"></i> Zapisz się na wizytę
+        </a>
+    </div>
+    
+    <!-- Filtry -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="statusFilter" class="form-label">Filtruj według statusu:</label>
+                            <select id="statusFilter" class="form-select" onchange="filterAppointments()">
+                                <option value="">Wszystkie</option>
+                                <option value="zaplanowana">Zaplanowane</option>
+                                <option value="zakonczona">Zakończone</option>
+                                <option value="anulowana">Anulowane</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="doctorFilter" class="form-label">Filtruj według lekarza:</label>
+                            <select id="doctorFilter" class="form-select" onchange="filterAppointments()">
+                                <option value="">Wszyscy lekarze</option>
+                                <!-- Opcje będą dodane dynamicznie -->
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h6>Statystyki:</h6>
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="text-primary">
+                                <strong id="plannedCount">0</strong><br>
+                                <small>Zaplanowane</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="text-success">
+                                <strong id="completedCount">0</strong><br>
+                                <small>Zakończone</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="text-danger">
+                                <strong id="cancelledCount">0</strong><br>
+                                <small>Anulowane</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Lista wizyt -->
+    {% if wizyty %}
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="appointmentsTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Data i godzina</th>
+                            <th>Lekarz</th>
+                            <th>Status</th>
+                            <th>Notatki</th>
+                            <th>Akcje</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for wizyta in wizyty %}
+                        <tr data-status="{{ wizyta.status }}" data-doctor="{{ wizyta.lekarz.imie }} {{ wizyta.lekarz.nazwisko }}">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div>
+                                        <strong>{{ wizyta.data_wizyty.strftime('%d.%m.%Y') }}</strong><br>
+                                        <small class="text-muted">{{ wizyta.data_wizyty.strftime('%H:%M') }}</small>
+                                    </div>
+                                    {% set days_diff = (wizyta.data_wizyty.date() - moment().date()).days %}
+                                    {% if wizyta.status == 'zaplanowana' %}
+                                        {% if days_diff == 0 %}
+                                        <span class="badge bg-warning ms-2">Dziś</span>
+                                        {% elif days_diff == 1 %}
+                                        <span class="badge bg-info ms-2">Jutro</span>
+                                        {% elif days_diff > 0 and days_diff <= 7 %}
+                                        <span class="badge bg-primary ms-2">Za {{ days_diff }} dni</span>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <strong>Dr {{ wizyta.lekarz.imie }} {{ wizyta.lekarz.nazwisko }}</strong><br>
+                                <small class="text-muted">{{ wizyta.lekarz.specjalizacja or 'Ogólna' }}</small>
+                            </td>
+                            <td>
+                                {% if wizyta.status == 'zaplanowana' %}
+                                <span class="badge bg-warning">Zaplanowana</span>
+                                {% elif wizyta.status == 'zakonczona' %}
+                                <span class="badge bg-success">Zakończona</span>
+                                {% elif wizyta.status == 'anulowana' %}
+                                <span class="badge bg-danger">Anulowana</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ wizyta.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if wizyta.notatki %}
+                                <span class="text-truncate d-inline-block" style="max-width: 200px;" 
+                                      title="{{ wizyta.notatki }}">
+                                    {{ wizyta.notatki }}
+                                </span>
+                                {% else %}
+                                <span class="text-muted">Brak notatek</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    {% if wizyta.status == 'zaplanowana' %}
+                                        {% set hours_diff = ((wizyta.data_wizyty - moment()).total_seconds() / 3600) %}
+                                        {% if hours_diff > 2 %}
+                                        <button class="btn btn-outline-danger" title="Anuluj wizytę"
+                                                onclick="cancelAppointment({{ wizyta.id_wizyty }}, '{{ wizyta.data_wizyty.strftime('%d.%m.%Y %H:%M') }}')">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                        {% endif %}
+                                        <button class="btn btn-outline-primary" title="Przypomnienie"
+                                                onclick="sendReminder({{ wizyta.id_wizyty }})">
+                                            <i class="fas fa-bell"></i>
+                                        </button>
+                                    {% endif %}
+                                    {% if wizyta.status == 'zakonczona' %}
+                                    <button class="btn btn-outline-info" title="Zobacz szczegóły"
+                                            onclick="showAppointmentDetails({{ wizyta.id_wizyty }})">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <h4 class="alert-heading">Brak wizyt</h4>
+        <p>Nie masz jeszcze żadnych umówionych wizyt.</p>
+        <hr>
+        <a href="{{ url_for('pacjent_bp.zapisz_sie') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Umów pierwszą wizytę
+        </a>
+    </div>
+    {% endif %}
+    
+    <div class="mt-4">
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ url_for('pacjent_bp.kalendarz') }}" class="btn btn-primary">
+                <i class="fas fa-calendar"></i> Zobacz kalendarz
+            </a>
+            <a href="{{ url_for('pacjent_bp.dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Powrót do panelu
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Modal szczegółów wizyty -->
+<div class="modal fade" id="appointmentDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Szczegóły wizyty</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="appointmentDetailsContent">
+                    <div class="text-center">
+                        <div class="spinner-border" role="status"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zamknij</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    updateStatistics();
+    populateDoctorFilter();
+});
+
+function updateStatistics() {
+    var table = document.getElementById('appointmentsTable');
+    if (!table) return;
+    
+    var rows = table.getElementsByTagName('tr');
+    var planned = 0, completed = 0, cancelled = 0;
+    
+    for (var i = 1; i < rows.length; i++) { // Пропускаем заголовок
+        var status = rows[i].getAttribute('data-status');
+        switch(status) {
+            case 'zaplanowana':
+                planned++;
+                break;
+            case 'zakonczona':
+                completed++;
+                break;
+            case 'anulowana':
+                cancelled++;
+                break;
+        }
+    }
+    
+    document.getElementById('plannedCount').textContent = planned;
+    document.getElementById('completedCount').textContent = completed;
+    document.getElementById('cancelledCount').textContent = cancelled;
+}
+
+function populateDoctorFilter() {
+    var table = document.getElementById('appointmentsTable');
+    var select = document.getElementById('doctorFilter');
+    
+    if (!table || !select) return;
+    
+    var doctors = new Set();
+    var rows = table.getElementsByTagName('tr');
+    
+    for (var i = 1; i < rows.length; i++) {
+        var doctor = rows[i].getAttribute('data-doctor');
+        if (doctor) {
+            doctors.add(doctor);
+        }
+    }
+    
+    doctors.forEach(function(doctor) {
+        var option = document.createElement('option');
+        option.value = doctor;
+        option.textContent = 'Dr ' + doctor;
+        select.appendChild(option);
+    });
+}
+
+function filterAppointments() {
+    var statusFilter = document.getElementById('statusFilter').value;
+    var doctorFilter = document.getElementById('doctorFilter').value;
+    var table = document.getElementById('appointmentsTable');
+    
+    if (!table) return;
+    
+    var rows = table.getElementsByTagName('tr');
+    
+    for (var i = 1; i < rows.length; i++) {
+        var row = rows[i];
+        var status = row.getAttribute('data-status');
+        var doctor = row.getAttribute('data-doctor');
+        
+        var showRow = true;
+        
+        if (statusFilter && status !== statusFilter) {
+            showRow = false;
+        }
+        
+        if (doctorFilter && doctor !== doctorFilter) {
+            showRow = false;
+        }
+        
+        row.style.display = showRow ? '' : 'none';
+    }
+}
+
+function cancelAppointment(appointmentId, appointmentInfo) {
+    if (confirm('Czy na pewno chcesz anulować wizytę ' + appointmentInfo + '?')) {
+        fetch('/pacjent/api/cancel-appointment/' + appointmentId, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(result) {
+            if (result.success) {
+                alert(result.message || 'Wizyta została anulowana');
+                location.reload(); // Перезагружаем страницу
+            } else {
+                alert('Błąd: ' + result.error);
+            }
+        })
+        .catch(function(error) {
+            alert('Błąd połączenia: ' + error.message);
+        });
+    }
+}
+
+function sendReminder(appointmentId) {
+    // TODO: Реализовать отправку напоминания
+    alert('Funkcja przypomnienia będzie dostępna wkrótce');
+}
+
+function showAppointmentDetails(appointmentId) {
+    var modal = new bootstrap.Modal(document.getElementById('appointmentDetailsModal'));
+    var content = document.getElementById('appointmentDetailsContent');
+    
+    content.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
+    modal.show();
+    
+    // TODO: Загрузить детали визиты через API
+    setTimeout(function() {
+        content.innerHTML = '<div class="alert alert-info">' +
+                           '<h6>Szczegóły wizyty #' + appointmentId + '</h6>' +
+                           '<p>Szczegółowe informacje o wizycie będą dostępne wkrótce.</p>' +
+                           '</div>';
+    }, 1000);
+}
+</script>
+
+<style>
+.table td {
+    vertical-align: middle;
+}
+
+.text-truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.badge {
+    font-size: 0.75em;
+}
+
+.btn-group .btn {
+    padding: 0.25rem 0.5rem;
+}
+</style>
+{% endblock %}

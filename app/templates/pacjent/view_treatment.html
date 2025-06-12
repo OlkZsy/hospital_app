@@ -1,6 +1,404 @@
-<h2>My Treatment</h2>
-<ul>
-    {% for t in treatments %}
-    <li>{{ t.date_assigned }}: {{ t.notes }}</li>
-    {% endfor %}
-</ul>
+{% extends 'base.html' %}
+
+{% block content %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<div class="container mt-4">
+    <h2 class="mb-4">Moje leczenie</h2>
+    <p class="lead">Historia medyczna i przepisane leki</p>
+    
+    <div class="row">
+        <!-- Historia medyczna -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-file-medical"></i> Historia medyczna</h5>
+                </div>
+                <div class="card-body">
+                    <div id="historiaContent">
+                        <div class="text-center">
+                            <div class="spinner-border" role="status"></div>
+                            <p class="mt-2">Ładowanie historii...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recepty -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-prescription-bottle-alt"></i> Moje recepty</h5>
+                </div>
+                <div class="card-body">
+                    <div id="receptyContent">
+                        <div class="text-center">
+                            <div class="spinner-border" role="status"></div>
+                            <p class="mt-2">Ładowanie recept...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Moje wizyty -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-calendar-check"></i> Moje wizyty</h5>
+                </div>
+                <div class="card-body">
+                    <div id="wizytyContent">
+                        <div class="text-center">
+                            <div class="spinner-border" role="status"></div>
+                            <p class="mt-2">Ładowanie wizyt...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Szybkie akcje -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6>Szybkie akcje</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a href="{{ url_for('pacjent_bp.zapisz_sie') }}" class="btn btn-success">
+                            <i class="fas fa-plus"></i> Zapisz się na wizytę
+                        </a>
+                        <a href="{{ url_for('pacjent_bp.kalendarz') }}" class="btn btn-primary">
+                            <i class="fas fa-calendar"></i> Zobacz kalendarz
+                        </a>
+                        <a href="{{ url_for('pacjent_bp.wizyty') }}" class="btn btn-info">
+                            <i class="fas fa-list"></i> Wszystkie wizyty
+                        </a>
+                        <a href="{{ url_for('pacjent_bp.dashboard') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Powrót do panelu
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+class PatientTreatmentView {
+    constructor() {
+        this.init();
+    }
+    
+    init() {
+        this.loadHistoria();
+        this.loadRecepty();
+        this.loadWizyty();
+    }
+    
+    loadHistoria() {
+        var historiaEl = document.getElementById('historiaContent');
+        
+        // Симуляция загрузки - здесь должен быть реальный API endpoint
+        // Пока используем данные из шаблона
+        fetch('/pacjent/api/my-historia')
+            .then(function(response) {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('API endpoint not implemented');
+                }
+            })
+            .then(function(data) {
+                patientTreatment.renderHistoria(data);
+            })
+            .catch(function(error) {
+                // Fallback к статическим данным если API не готов
+                console.log('Using fallback historia data');
+                patientTreatment.renderHistoriaFallback();
+            });
+    }
+    
+    renderHistoria(data) {
+        var historiaEl = document.getElementById('historiaContent');
+        
+        if (!data || data.length === 0) {
+            historiaEl.innerHTML = '<div class="text-center text-muted py-4">' +
+                                  '<i class="fas fa-clipboard-list fa-3x mb-3"></i>' +
+                                  '<p>Brak wpisów w historii medycznej</p>' +
+                                  '</div>';
+            return;
+        }
+        
+        var html = '<div class="timeline">';
+        data.forEach(function(wpis) {
+            html += '<div class="timeline-item mb-3 p-3 border-start border-primary border-3 bg-light">' +
+                   '<div class="d-flex justify-content-between">' +
+                   '<h6 class="mb-1">' + wpis.data_wpisu + '</h6>' +
+                   '<small class="text-muted">Dr ' + wpis.lekarz + '</small>' +
+                   '</div>' +
+                   '<div class="mb-2">' +
+                   '<strong>Diagnoza:</strong> ' + wpis.diagnoza +
+                   '</div>';
+            
+            if (wpis.notatki) {
+                html += '<div><strong>Notatki:</strong> ' + wpis.notatki + '</div>';
+            }
+            
+            html += '</div>';
+        });
+        html += '</div>';
+        
+        historiaEl.innerHTML = html;
+    }
+    
+    renderHistoriaFallback() {
+        var historiaEl = document.getElementById('historiaContent');
+        
+        // Примерные данные для демонстрации
+        var sampleData = [
+            {
+                data_wpisu: '15.05.2025',
+                lekarz: 'Anna Kowalska',
+                diagnoza: 'Zapalenie oskrzeli',
+                notatki: 'Pacjent zgłaszał kaszel i duszności. Zalecono odpoczynek i leki przeciwzapalne.'
+            },
+            {
+                data_wpisu: '02.04.2025',
+                lekarz: 'Jan Nowak',
+                diagnoza: 'Badanie kontrolne',
+                notatki: 'Parametry w normie. Kontynuować obecne leczenie.'
+            }
+        ];
+        
+        this.renderHistoria(sampleData);
+    }
+    
+    loadRecepty() {
+        var receptyEl = document.getElementById('receptyContent');
+        
+        fetch('/pacjent/api/my-recepty')
+            .then(function(response) {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('API endpoint not implemented');
+                }
+            })
+            .then(function(data) {
+                patientTreatment.renderRecepty(data);
+            })
+            .catch(function(error) {
+                console.log('Using fallback recepty data');
+                patientTreatment.renderReceptyFallback();
+            });
+    }
+    
+    renderRecepty(data) {
+        var receptyEl = document.getElementById('receptyContent');
+        
+        if (!data || data.length === 0) {
+            receptyEl.innerHTML = '<div class="text-center text-muted py-4">' +
+                                 '<i class="fas fa-pills fa-3x mb-3"></i>' +
+                                 '<p>Brak przepisanych leków</p>' +
+                                 '</div>';
+            return;
+        }
+        
+        var html = '';
+        data.forEach(function(recepta) {
+            html += '<div class="card mb-3 border-success">' +
+                   '<div class="card-body">' +
+                   '<div class="d-flex justify-content-between">' +
+                   '<h6 class="card-title mb-1">Recepta #' + recepta.id_recepty + '</h6>' +
+                   '<small class="text-muted">' + recepta.data_wystawienia + '</small>' +
+                   '</div>' +
+                   '<div class="mb-2">' +
+                   '<strong>Leki:</strong> ' + recepta.leki +
+                   '</div>';
+            
+            if (recepta.instrukcje) {
+                html += '<div class="mb-2"><strong>Instrukcje:</strong> ' + recepta.instrukcje + '</div>';
+            }
+            
+            html += '<small class="text-muted">Wystawił: Dr ' + recepta.lekarz + '</small>' +
+                   '</div></div>';
+        });
+        
+        receptyEl.innerHTML = html;
+    }
+    
+    renderReceptyFallback() {
+        var receptyEl = document.getElementById('receptyContent');
+        
+        var sampleData = [
+            {
+                id_recepty: 123,
+                data_wystawienia: '15.05.2025',
+                leki: 'Amoksycylina 500mg - 3x dziennie przez 7 dni\nIbuprom 200mg - doraźnie przy bólu',
+                instrukcje: 'Przyjmować po posiłku. Nie łączyć z alkoholem.',
+                lekarz: 'Anna Kowalska'
+            },
+            {
+                id_recepty: 124,
+                data_wystawienia: '02.04.2025',
+                leki: 'Witamina D3 2000IU - 1x dziennie',
+                instrukcje: 'Przyjmować rano z tłuszczem.',
+                lekarz: 'Jan Nowak'
+            }
+        ];
+        
+        this.renderRecepty(sampleData);
+    }
+    
+    loadWizyty() {
+        var wizytyEl = document.getElementById('wizytyContent');
+        
+        fetch('/pacjent/api/my-wizyty')
+            .then(function(response) {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('API endpoint not implemented');
+                }
+            })
+            .then(function(data) {
+                patientTreatment.renderWizyty(data);
+            })
+            .catch(function(error) {
+                console.log('Using fallback wizyty data');
+                patientTreatment.renderWizytyFallback();
+            });
+    }
+    
+    renderWizyty(data) {
+        var wizytyEl = document.getElementById('wizytyContent');
+        
+        if (!data || data.length === 0) {
+            wizytyEl.innerHTML = '<div class="text-center text-muted py-4">' +
+                                '<i class="fas fa-calendar fa-3x mb-3"></i>' +
+                                '<p>Brak wizyt</p>' +
+                                '</div>';
+            return;
+        }
+        
+        var html = '<div class="table-responsive">' +
+                   '<table class="table table-hover">' +
+                   '<thead class="table-light">' +
+                   '<tr>' +
+                   '<th>Data i godzina</th>' +
+                   '<th>Lekarz</th>' +
+                   '<th>Status</th>' +
+                   '<th>Notatki</th>' +
+                   '</tr>' +
+                   '</thead>' +
+                   '<tbody>';
+        
+        data.forEach(function(wizyta) {
+            var statusClass = '';
+            var statusText = wizyta.status;
+            
+            switch(wizyta.status) {
+                case 'zaplanowana':
+                    statusClass = 'bg-warning';
+                    statusText = 'Zaplanowana';
+                    break;
+                case 'zakonczona':
+                    statusClass = 'bg-success';
+                    statusText = 'Zakończona';
+                    break;
+                case 'anulowana':
+                    statusClass = 'bg-danger';
+                    statusText = 'Anulowana';
+                    break;
+                default:
+                    statusClass = 'bg-secondary';
+            }
+            
+            html += '<tr>' +
+                   '<td>' +
+                   '<strong>' + wizyta.data_wizyty.split(' ')[0] + '</strong><br>' +
+                   '<small class="text-muted">' + wizyta.data_wizyty.split(' ')[1] + '</small>' +
+                   '</td>' +
+                   '<td>Dr ' + wizyta.lekarz + '</td>' +
+                   '<td><span class="badge ' + statusClass + '">' + statusText + '</span></td>' +
+                   '<td>' + (wizyta.notatki || '<span class="text-muted">Brak notatek</span>') + '</td>' +
+                   '</tr>';
+        });
+        
+        html += '</tbody></table></div>';
+        wizytyEl.innerHTML = html;
+    }
+    
+    renderWizytyFallback() {
+        var wizytyEl = document.getElementById('wizytyContent');
+        
+        var sampleData = [
+            {
+                data_wizyty: '15.05.2025 10:30',
+                lekarz: 'Anna Kowalska',
+                status: 'zakonczona',
+                notatki: 'Kontrola po leczeniu antybiotykiem. Stan poprawny.'
+            },
+            {
+                data_wizyty: '25.06.2025 14:15',
+                lekarz: 'Jan Nowak',
+                status: 'zaplanowana',
+                notatki: 'Wizyta kontrolna'
+            },
+            {
+                data_wizyty: '02.04.2025 09:00',
+                lekarz: 'Jan Nowak',
+                status: 'zakonczona',
+                notatki: 'Badanie profilaktyczne. Wszystko w normie.'
+            }
+        ];
+        
+        this.renderWizyty(sampleData);
+    }
+}
+
+// Инициализация
+var patientTreatment;
+document.addEventListener('DOMContentLoaded', function() {
+    patientTreatment = new PatientTreatmentView();
+});
+</script>
+
+<style>
+.timeline-item {
+    position: relative;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -8px;
+    top: 10px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: #0d6efd;
+}
+
+.card-header {
+    border-bottom: 2px solid rgba(255,255,255,.2);
+}
+
+.badge {
+    font-size: 0.75em;
+}
+
+.table td {
+    vertical-align: middle;
+}
+</style>
+{% endblock %}

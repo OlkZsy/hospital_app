@@ -281,3 +281,95 @@ def api_my_calendar():
         })
     
     return jsonify(appointments_by_day)
+
+@pacjent_bp.route('/leczenie')
+@login_required
+def view_treatment():
+    if not is_pacjent():
+        flash('Brak dostępu. Ta strona jest tylko dla pacjentów.', 'danger')
+        return redirect(url_for('auth_bp.login'))
+    
+    return render_template('pacjent/view_treatment.html', user=current_user)
+
+@pacjent_bp.route('/api/my-historia')
+@login_required
+def api_my_historia():
+    """API для получения истории медицинской пациента"""
+    if not is_pacjent():
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    try:
+        historia = HistoriaMedyczna.query.filter_by(
+            id_pacjenta=current_user.id_pacjenta
+        ).order_by(HistoriaMedyczna.data_wpisu.desc()).all()
+        
+        historia_data = []
+        for wpis in historia:
+            historia_data.append({
+                'data_wpisu': wpis.data_wpisu.strftime('%d.%m.%Y'),
+                'lekarz': f"{wpis.lekarz.imie} {wpis.lekarz.nazwisko}",
+                'diagnoza': wpis.diagnoza,
+                'notatki': wpis.notatki
+            })
+        
+        return jsonify(historia_data)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@pacjent_bp.route('/api/my-recepty')
+@login_required
+def api_my_recepty():
+    """API dla получения рецептов пациента"""
+    if not is_pacjent():
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    try:
+        recepty = Recepta.query.filter_by(
+            id_pacjenta=current_user.id_pacjenta
+        ).order_by(Recepta.data_wystawienia.desc()).all()
+        
+        recepty_data = []
+        for recepta in recepty:
+            recepty_data.append({
+                'id_recepty': recepta.id_recepty,
+                'data_wystawienia': recepta.data_wystawienia.strftime('%d.%m.%Y'),
+                'leki': recepta.leki,
+                'instrukcje': recepta.instrukcje,
+                'lekarz': f"{recepta.lekarz.imie} {recepta.lekarz.nazwisko}"
+            })
+        
+        return jsonify(recepty_data)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@pacjent_bp.route('/api/my-wizyty')
+@login_required
+def api_my_wizyty():
+    """API для получения визит пациента"""
+    if not is_pacjent():
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    try:
+        wizyty = Wizyta.query.filter_by(
+            id_pacjenta=current_user.id_pacjenta
+        ).order_by(Wizyta.data_wizyty.desc()).all()
+        
+        wizyty_data = []
+        for wizyta in wizyty:
+            wizyty_data.append({
+                'id_wizyty': wizyta.id_wizyty,
+                'data_wizyty': wizyta.data_wizyty.strftime('%d.%m.%Y %H:%M'),
+                'lekarz': f"{wizyta.lekarz.imie} {wizyta.lekarz.nazwisko}",
+                'status': wizyta.status,
+                'notatki': wizyta.notatki
+            })
+        
+        return jsonify(wizyty_data)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+
+

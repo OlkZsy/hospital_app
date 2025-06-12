@@ -1,0 +1,490 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<div class="container mt-4">
+    <h2 class="mb-4">Mój kalendarz wizyt</h2>
+    
+    <!-- Легенда и навигация -->
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <div class="alert alert-info">
+                <div class="d-flex gap-4 align-items-center">
+                    <strong>Legenda:</strong>
+                    <span><span class="badge bg-primary me-1">■</span> Moje wizyty</span>
+                    <span><span class="badge bg-secondary me-1">■</span> Pozostałe dni</span>
+                </div>
+                <small class="mt-2 d-block">Kliknij na niebieski dzień aby zobaczyć szczegóły wizyty</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="d-flex align-items-center gap-2">
+                <button onclick="patientCalendar.previousMonth()" class="btn btn-outline-primary">&lt;</button>
+                <h5 class="mb-0 flex-grow-1 text-center" id="monthYear">Loading...</h5>
+                <button onclick="patientCalendar.nextMonth()" class="btn btn-outline-primary">&gt;</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Календарная сетка -->
+    <div class="card">
+        <div class="card-body">
+            <div class="calendar-grid">
+                <!-- Заголовки дней недели -->
+                <div class="row text-center fw-bold border-bottom pb-2 mb-2">
+                    <div class="col">Poniedziałek</div>
+                    <div class="col">Wtorek</div>
+                    <div class="col">Środa</div>
+                    <div class="col">Czwartek</div>
+                    <div class="col">Piątek</div>
+                    <div class="col">Sobota</div>
+                    <div class="col">Niedziela</div>
+                </div>
+                
+                <!-- Дни месяца -->
+                <div id="calendarDays"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Быстрые действия -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h6>Nadchodzące wizyty</h6>
+                </div>
+                <div class="card-body">
+                    <div id="upcomingAppointments">
+                        <div class="text-center">
+                            <div class="spinner-border spinner-border-sm" role="status"></div>
+                            <span class="ms-2">Ładowanie...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h6>Szybkie akcje</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('pacjent_bp.zapisz_sie') }}" class="btn btn-success">
+                            <i class="fas fa-plus"></i> Zapisz się na wizytę
+                        </a>
+                        <a href="{{ url_for('pacjent_bp.wizyty') }}" class="btn btn-primary">
+                            <i class="fas fa-list"></i> Zobacz wszystkie wizyty
+                        </a>
+                        <a href="{{ url_for('pacjent_bp.dashboard') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Powrót do panelu
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal szczegółów wizyty -->
+<div class="modal fade" id="appointmentDetailsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="appointmentDetailsModalLabel">Szczegóły wizyty</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="appointmentDetailsContent"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zamknij</button>
+                <button type="button" id="cancelAppointmentBtn" class="btn btn-danger" style="display: none;" onclick="patientCalendar.cancelAppointment()">
+                    <i class="fas fa-times"></i> Anuluj wizytę
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+class PatientCalendar {
+    constructor() {
+        this.currentDate = new Date();
+        this.monthAppointments = {};
+        this.selectedAppointment = null;
+        this.monthNames = [
+            'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
+            'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'
+        ];
+        this.init();
+    }
+    
+    init() {
+        this.updateMonthDisplay();
+        this.loadMonthAppointments();
+        this.loadUpcomingAppointments();
+    }
+    
+    updateMonthDisplay() {
+        var monthYearEl = document.getElementById('monthYear');
+        monthYearEl.textContent = this.monthNames[this.currentDate.getMonth()] + ' ' + this.currentDate.getFullYear();
+        this.renderCalendar();
+    }
+    
+    renderCalendar() {
+        var calendarDays = document.getElementById('calendarDays');
+        calendarDays.innerHTML = '';
+        
+        var year = this.currentDate.getFullYear();
+        var month = this.currentDate.getMonth();
+        
+        var firstDay = new Date(year, month, 1);
+        var lastDay = new Date(year, month + 1, 0);
+        var startDay = (firstDay.getDay() + 6) % 7;
+        
+        var calendarHTML = '';
+        var dayCount = 0;
+        
+        for (var week = 0; week < 6; week++) {
+            calendarHTML += '<div class="row mb-2">';
+            
+            for (var day = 0; day < 7; day++) {
+                var cellDate = new Date(year, month, dayCount - startDay + 1);
+                var isCurrentMonth = cellDate.getMonth() === month;
+                var dateStr = cellDate.toISOString().split('T')[0];
+                var isToday = dateStr === new Date().toISOString().split('T')[0];
+                
+                if (dayCount < startDay || !isCurrentMonth) {
+                    calendarHTML += '<div class="col patient-calendar-day other-month"></div>';
+                } else {
+                    var dayNum = cellDate.getDate();
+                    var appointmentInfo = this.getAppointmentInfo(dateStr);
+                    var cellClass = 'patient-calendar-day current-month ' + appointmentInfo.cssClass;
+                    if (isToday) cellClass += ' today';
+                    
+                    var clickHandler = appointmentInfo.hasAppointment ? 'onclick="patientCalendar.showAppointmentDetails(\'' + dateStr + '\')"' : '';
+                    
+                    calendarHTML += '<div class="col ' + cellClass + '" ' + clickHandler + '>';
+                    calendarHTML += '<div class="day-number">' + dayNum + '</div>';
+                    calendarHTML += '<div class="day-appointments">' + appointmentInfo.text + '</div>';
+                    calendarHTML += '</div>';
+                }
+                
+                dayCount++;
+            }
+            
+            calendarHTML += '</div>';
+            
+            if (dayCount - startDay > lastDay.getDate()) break;
+        }
+        
+        calendarDays.innerHTML = calendarHTML;
+    }
+    
+    getAppointmentInfo(dateStr) {
+        var appointments = this.monthAppointments[dateStr];
+        
+        if (!appointments || appointments.length === 0) {
+            return { cssClass: 'no-appointment', text: '', hasAppointment: false };
+        }
+        
+        var appointmentCount = appointments.length;
+        if (appointmentCount === 1) {
+            var app = appointments[0];
+            return { 
+                cssClass: 'has-appointment', 
+                text: app.time + '<br><small>' + app.doctor.substring(0, 15) + '</small>', 
+                hasAppointment: true 
+            };
+        } else {
+            return { 
+                cssClass: 'has-appointment', 
+                text: appointmentCount + ' wizyt', 
+                hasAppointment: true 
+            };
+        }
+    }
+    
+    loadMonthAppointments() {
+        var self = this;
+        this.monthAppointments = {};
+        
+        var year = this.currentDate.getFullYear();
+        var month = this.currentDate.getMonth();
+        
+        fetch('/pacjent/api/my-calendar?year=' + year + '&month=' + (month + 1))
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                self.monthAppointments = data;
+                self.renderCalendar();
+            })
+            .catch(function(error) {
+                console.error('Error loading appointments:', error);
+                self.renderCalendar();
+            });
+    }
+    
+    loadUpcomingAppointments() {
+        var upcomingEl = document.getElementById('upcomingAppointments');
+        
+        fetch('/pacjent/api/my-calendar?year=' + new Date().getFullYear() + '&month=' + (new Date().getMonth() + 1))
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                var upcoming = [];
+                var today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                // Собираем все будущие визиты
+                Object.keys(data).forEach(function(dateStr) {
+                    var appointmentDate = new Date(dateStr);
+                    if (appointmentDate >= today) {
+                        data[dateStr].forEach(function(app) {
+                            upcoming.push({
+                                date: dateStr,
+                                time: app.time,
+                                doctor: app.doctor,
+                                status: app.status,
+                                id: app.id
+                            });
+                        });
+                    }
+                });
+                
+                // Сортируем по дате и времени
+                upcoming.sort(function(a, b) {
+                    var dateA = new Date(a.date + 'T' + a.time);
+                    var dateB = new Date(b.date + 'T' + b.time);
+                    return dateA - dateB;
+                });
+                
+                // Показываем только первые 3
+                upcoming = upcoming.slice(0, 3);
+                
+                if (upcoming.length === 0) {
+                    upcomingEl.innerHTML = '<p class="text-muted mb-0">Brak nadchodzących wizyt</p>';
+                } else {
+                    var html = '';
+                    upcoming.forEach(function(app) {
+                        var statusBadge = app.status === 'zaplanowana' ? 'bg-success' : 'bg-warning';
+                        html += '<div class="border-bottom pb-2 mb-2">' +
+                               '<div class="d-flex justify-content-between">' +
+                               '<div>' +
+                               '<strong>' + patientCalendar.formatShortDate(app.date) + '</strong> o <strong>' + app.time + '</strong><br>' +
+                               '<small>' + app.doctor + '</small>' +
+                               '</div>' +
+                               '<span class="badge ' + statusBadge + '">' + app.status + '</span>' +
+                               '</div>' +
+                               '</div>';
+                    });
+                    upcomingEl.innerHTML = html;
+                }
+            })
+            .catch(function(error) {
+                upcomingEl.innerHTML = '<p class="text-danger">Błąd ładowania wizyt</p>';
+            });
+    }
+    
+    showAppointmentDetails(dateStr) {
+        var appointments = this.monthAppointments[dateStr];
+        if (!appointments || appointments.length === 0) return;
+        
+        var modal = new bootstrap.Modal(document.getElementById('appointmentDetailsModal'));
+        var modalTitle = document.getElementById('appointmentDetailsModalLabel');
+        var modalContent = document.getElementById('appointmentDetailsContent');
+        var cancelBtn = document.getElementById('cancelAppointmentBtn');
+        
+        modalTitle.textContent = 'Wizyty dnia ' + this.formatPolishDate(dateStr);
+        
+        var html = '';
+        var canCancel = false;
+        
+        appointments.forEach(function(app) {
+            var statusClass = app.status === 'zaplanowana' ? 'success' : 'secondary';
+            var appointmentDateTime = new Date(dateStr + 'T' + app.time);
+            var now = new Date();
+            var canCancelThis = appointmentDateTime > new Date(now.getTime() + 2 * 60 * 60 * 1000); // 2 godziny przed
+            
+            if (canCancelThis && app.status === 'zaplanowana') {
+                canCancel = true;
+            }
+            
+            html += '<div class="card mb-3">' +
+                   '<div class="card-body">' +
+                   '<div class="d-flex justify-content-between align-items-start">' +
+                   '<div>' +
+                   '<h6 class="card-title mb-1">' + app.time + '</h6>' +
+                   '<p class="card-text">' +
+                   '<strong>Lekarz:</strong> ' + app.doctor + '<br>';
+            
+            if (app.notes) {
+                html += '<strong>Notatki:</strong> ' + app.notes + '<br>';
+            }
+            
+            html += '</p>' +
+                   '</div>' +
+                   '<span class="badge bg-' + statusClass + '">' + app.status + '</span>' +
+                   '</div>';
+            
+            if (canCancelThis && app.status === 'zaplanowana') {
+                html += '<button class="btn btn-sm btn-outline-danger" onclick="patientCalendar.cancelSingleAppointment(' + app.id + ')">' +
+                       '<i class="fas fa-times"></i> Anuluj tę wizytę' +
+                       '</button>';
+            }
+            
+            html += '</div></div>';
+        });
+        
+        modalContent.innerHTML = html;
+        
+        // Показываем/скрываем кнопку отмены
+        if (canCancel) {
+            this.selectedAppointment = appointments[0]; // Для простоты берем первую
+            cancelBtn.style.display = 'block';
+        } else {
+            cancelBtn.style.display = 'none';
+        }
+        
+        modal.show();
+    }
+    
+    cancelSingleAppointment(appointmentId) {
+        if (confirm('Czy na pewno chcesz anulować tę wizytę?')) {
+            fetch('/pacjent/api/cancel-appointment/' + appointmentId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(result) {
+                if (result.success) {
+                    alert(result.message || 'Wizyta została anulowana');
+                    
+                    // Закрываем модал
+                    var modal = bootstrap.Modal.getInstance(document.getElementById('appointmentDetailsModal'));
+                    modal.hide();
+                    
+                    // Обновляем календарь
+                    patientCalendar.loadMonthAppointments();
+                    patientCalendar.loadUpcomingAppointments();
+                } else {
+                    alert('Błąd: ' + result.error);
+                }
+            })
+            .catch(function(error) {
+                alert('Błąd połączenia: ' + error.message);
+            });
+        }
+    }
+    
+    cancelAppointment() {
+        if (this.selectedAppointment) {
+            this.cancelSingleAppointment(this.selectedAppointment.id);
+        }
+    }
+    
+    previousMonth() {
+        this.currentDate.setMonth(this.currentDate.getMonth() - 1);
+        this.updateMonthDisplay();
+        this.loadMonthAppointments();
+    }
+    
+    nextMonth() {
+        this.currentDate.setMonth(this.currentDate.getMonth() + 1);
+        this.updateMonthDisplay();
+        this.loadMonthAppointments();
+    }
+    
+    formatPolishDate(dateStr) {
+        var months = [
+            'stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca',
+            'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'
+        ];
+        
+        var date = new Date(dateStr);
+        var day = date.getDate();
+        var month = months[date.getMonth()];
+        var year = date.getFullYear();
+        
+        return day + ' ' + month + ' ' + year;
+    }
+    
+    formatShortDate(dateStr) {
+        var date = new Date(dateStr);
+        return date.getDate() + '.' + (date.getMonth() + 1).toString().padStart(2, '0');
+    }
+}
+
+// Инициализация
+var patientCalendar;
+document.addEventListener('DOMContentLoaded', function() {
+    patientCalendar = new PatientCalendar();
+});
+</script>
+
+<style>
+.patient-calendar-day {
+    min-height: 100px;
+    border: 1px solid #dee2e6;
+    padding: 8px;
+    margin: 1px;
+    border-radius: 5px;
+    transition: all 0.2s;
+    font-size: 12px;
+}
+
+.patient-calendar-day.current-month {
+    background-color: #fff;
+}
+
+.patient-calendar-day.other-month {
+    background-color: #f8f9fa;
+}
+
+.patient-calendar-day.today {
+    border: 2px solid #007bff;
+    font-weight: bold;
+}
+
+.patient-calendar-day.no-appointment {
+    background-color: #fff;
+    color: #6c757d;
+}
+
+.patient-calendar-day.has-appointment {
+    background-color: #cce5ff;
+    border-color: #007bff;
+    cursor: pointer;
+    color: #004085;
+}
+
+.patient-calendar-day:hover.has-appointment {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    background-color: #b3d9ff;
+}
+
+.day-number {
+    font-weight: bold;
+    font-size: 16px;
+    margin-bottom: 5px;
+}
+
+.day-appointments {
+    font-size: 11px;
+    line-height: 1.2;
+}
+</style>
+{% endblock %}

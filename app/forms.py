@@ -19,12 +19,22 @@ class RegistrationForm(FlaskForm):
     pesel = StringField('PESEL', validators=[DataRequired(), Length(min=11, max=11)])
     submit = SubmitField('Zarejestruj się')
 
-class RegisterUserForm(FlaskForm): #administrator form
+class RegisterUserForm(FlaskForm):
     imie = StringField('Imię', validators=[DataRequired()])
     nazwisko = StringField('Nazwisko', validators=[DataRequired()])
     email = StringField('Email', validators=[DataRequired(), Email()])
     telefon = StringField('Telefon', validators=[DataRequired()])
     haslo = PasswordField('Hasło', validators=[DataRequired()])
+    specjalizacja = SelectField('Specjalizacja', choices=[
+        ('Ogólna', 'Medycyna Ogólna'),
+        ('Kardiologia', 'Kardiologia'),
+        ('Pediatria', 'Pediatria'),
+        ('Chirurgia', 'Chirurgia'),
+        ('Neurologia', 'Neurologia'),
+        ('Dermatologia', 'Dermatologia'),
+        ('Ginekologia', 'Ginekologia'),
+        ('Ortopedia', 'Ortopedia')
+    ], validators=[DataRequired()])
     rola = SelectField('Rola', choices=[
         ('lekarz', 'Lekarz'),
         ('recepcjonista', 'Recepcjonista'),
