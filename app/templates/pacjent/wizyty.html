@@ -90,14 +90,13 @@
                                         <strong>{{ wizyta.data_wizyty.strftime('%d.%m.%Y') }}</strong><br>
                                         <small class="text-muted">{{ wizyta.data_wizyty.strftime('%H:%M') }}</small>
                                     </div>
-                                    {% set days_diff = (wizyta.data_wizyty.date() - moment().date()).days %}
                                     {% if wizyta.status == 'zaplanowana' %}
-                                        {% if days_diff == 0 %}
+                                        {% if wizyta.days_diff == 0 %}
                                         <span class="badge bg-warning ms-2">Dziś</span>
-                                        {% elif days_diff == 1 %}
+                                        {% elif wizyta.days_diff == 1 %}
                                         <span class="badge bg-info ms-2">Jutro</span>
-                                        {% elif days_diff > 0 and days_diff <= 7 %}
-                                        <span class="badge bg-primary ms-2">Za {{ days_diff }} dni</span>
+                                        {% elif wizyta.days_diff > 0 and wizyta.days_diff <= 7 %}
+                                        <span class="badge bg-primary ms-2">Za {{ wizyta.days_diff }} dni</span>
                                         {% endif %}
                                     {% endif %}
                                 </div>
@@ -129,18 +128,17 @@
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm" role="group">
+                                    {% if wizyta.status == 'zaplanowana' and wizyta.hours_diff > 2 %}
+                                    <button class="btn btn-outline-danger" title="Anuluj wizytę"
+                                            onclick="cancelAppointment({{ wizyta.id_wizyty }}, '{{ wizyta.data_wizyty.strftime('%d.%m.%Y %H:%M') }}')">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                    {% endif %}
                                     {% if wizyta.status == 'zaplanowana' %}
-                                        {% set hours_diff = ((wizyta.data_wizyty - moment()).total_seconds() / 3600) %}
-                                        {% if hours_diff > 2 %}
-                                        <button class="btn btn-outline-danger" title="Anuluj wizytę"
-                                                onclick="cancelAppointment({{ wizyta.id_wizyty }}, '{{ wizyta.data_wizyty.strftime('%d.%m.%Y %H:%M') }}')">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                        {% endif %}
-                                        <button class="btn btn-outline-primary" title="Przypomnienie"
-                                                onclick="sendReminder({{ wizyta.id_wizyty }})">
-                                            <i class="fas fa-bell"></i>
-                                        </button>
+                                    <button class="btn btn-outline-primary" title="Przypomnienie"
+                                            onclick="sendReminder({{ wizyta.id_wizyty }})">
+                                        <i class="fas fa-bell"></i>
+                                    </button>
                                     {% endif %}
                                     {% if wizyta.status == 'zakonczona' %}
                                     <button class="btn btn-outline-info" title="Zobacz szczegóły"

@@ -37,16 +37,26 @@ def wizyty():
         id_pacjenta=current_user.id_pacjenta
     ).order_by(Wizyta.data_wizyty.desc()).all()
     
+    # Dodajemy obliczenia dni dla każdej wizyty
+    from datetime import datetime, date
+    today = date.today()
+    now = datetime.now()
+    
+    for wizyta in wizyty:
+        wizyta.days_diff = (wizyta.data_wizyty.date() - today).days
+        wizyta.hours_diff = (wizyta.data_wizyty - now).total_seconds() / 3600
+    
     return render_template('pacjent/wizyty.html', wizyty=wizyty)
+    
+    
 
 @pacjent_bp.route('/kalendarz')
-@login_required
 def kalendarz():
     if not is_pacjent():
         flash('Brak dostępu. Ta strona jest tylko dla pacjentów.', 'danger')
         return redirect(url_for('auth_bp.login'))
     
-    return render_template('partials/calendar.html')
+    return render_template('pacjent/kalendarz.html')
 
 @pacjent_bp.route('/zapisz-sie')
 @login_required
@@ -372,4 +382,26 @@ def api_my_wizyty():
         return jsonify({'error': str(e)}), 500
     
 
-
+@pacjent_bp.route('/profil', methods=['GET', 'POST'])
+@login_required
+def profil():
+    if not is_pacjent():
+        flash('Brak dostępu. Ta strona jest tylko dla pacjentów.', 'danger')
+        return redirect(url_for('auth_bp.login'))
+    
+    if request.method == 'POST':
+        try:
+            # Aktualizujemy tylko adres i telefon
+            current_user.adres = request.form.get('adres', current_user.adres)
+            current_user.telefon = request.form.get('telefon', current_user.telefon)
+            
+            db.session.commit()
+            flash('Profil został zaktualizowany pomyślnie!', 'success')
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Błąd przy aktualizacji profilu: {str(e)}', 'danger')
+        
+        return redirect(url_for('pacjent_bp.profil'))
+    
+    return render_template('pacjent/profil.html', user=current_user)
