@@ -52,9 +52,11 @@ def register_user():
                 existing = Lekarz.query.filter_by(numer_licencji=numer_licencji).first()
                 if not existing:
                     break
-    
+            
+
+            specjalizacja = form.specjalizacja.data if form.specjalizacja.data else 'Medycyna Ogólna'
             user = Lekarz(imie=imie, nazwisko=nazwisko, email=email, telefon=telefon,
-                          haslo_hash=hashed_password, specjalizacja='Ogólna', 
+                          haslo_hash=hashed_password, specjalizacja=specjalizacja, 
                           numer_licencji=numer_licencji)
         elif rola == 'recepcjonista':
             user = Recepcjonista(imie=imie, nazwisko=nazwisko, email=email, telefon=telefon,

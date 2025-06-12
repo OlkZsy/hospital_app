@@ -26,15 +26,17 @@ class RegisterUserForm(FlaskForm):
     telefon = StringField('Telefon', validators=[DataRequired()])
     haslo = PasswordField('Hasło', validators=[DataRequired()])
     specjalizacja = SelectField('Specjalizacja', choices=[
-        ('Ogólna', 'Medycyna Ogólna'),
+        ('Medycyna Ogólna', 'Medycyna Ogólna'),
         ('Kardiologia', 'Kardiologia'),
         ('Pediatria', 'Pediatria'),
         ('Chirurgia', 'Chirurgia'),
         ('Neurologia', 'Neurologia'),
         ('Dermatologia', 'Dermatologia'),
         ('Ginekologia', 'Ginekologia'),
-        ('Ortopedia', 'Ortopedia')
-    ], validators=[DataRequired()])
+        ('Ortopedia', 'Ortopedia'),
+        ('Okulistyka', 'Okulistyka'),
+        ('Psychiatria', 'Psychiatria')
+    ])
     rola = SelectField('Rola', choices=[
         ('lekarz', 'Lekarz'),
         ('recepcjonista', 'Recepcjonista'),
