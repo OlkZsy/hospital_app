@@ -37,7 +37,7 @@ def wizyty():
         id_pacjenta=current_user.id_pacjenta
     ).order_by(Wizyta.data_wizyty.desc()).all()
     
-    # Dodajemy obliczenia dni dla każdej wizyty
+    #Dodajemy obliczenia dni dla każdej wizyty
     from datetime import datetime, date
     today = date.today()
     now = datetime.now()
@@ -66,7 +66,7 @@ def zapisz_sie():
         flash('Brak dostępu. Ta strona jest tylko dla pacjentów.', 'danger')
         return redirect(url_for('auth_bp.login'))
     
-    # Получаем всех врачей
+    #Получаем всех врачей
     lekarze = Lekarz.query.all()
     
     return render_template('pacjent/zapisz_sie.html', lekarze=lekarze)
@@ -84,7 +84,7 @@ def api_doctor_schedule(doctor_id):
     except:
         return jsonify({'error': 'Invalid date format'}), 400
     
-    # Получаем расписание врача
+    #Получаем расписание врача
     weekday_names = {
         0: 'Poniedziałek', 1: 'Wtorek', 2: 'Środa', 3: 'Czwartek',
         4: 'Piątek', 5: 'Sobota', 6: 'Niedziela'
@@ -103,7 +103,7 @@ def api_doctor_schedule(doctor_id):
             'available_days': []
         })
     
-    # Получаем занятые слоты
+    #Получаем занятые слоты
     wizyty = Wizyta.query.filter(
         Wizyta.id_lekarza == doctor_id,
         db.func.date(Wizyta.data_wizyty) == target_date,
@@ -111,7 +111,7 @@ def api_doctor_schedule(doctor_id):
     ).all()
     
     occupied_slots = []
-    patient_slots = []  # Слоты этого пациента
+    patient_slots = []  #Слоты этого пациента
     
     for wizyta in wizyty:
         slot_info = {
@@ -165,7 +165,7 @@ def api_doctor_schedule(doctor_id):
 @pacjent_bp.route('/api/book-appointment', methods=['POST'])
 @login_required
 def api_book_appointment():
-    """API записи пациента к врачу"""
+    #API записи пациента к врачу
     if not is_pacjent():
         return jsonify({'error': 'Unauthorized'}), 403
     
@@ -176,7 +176,7 @@ def api_book_appointment():
         doctor_id = data['doctor_id']
         notes = data.get('notes', '')
         
-        # Проверяем, не занят ли слот
+        #Проверяем, не занят ли слот
         existing = Wizyta.query.filter(
             Wizyta.id_lekarza == doctor_id,
             Wizyta.data_wizyty == slot_datetime,
@@ -186,7 +186,7 @@ def api_book_appointment():
         if existing:
             return jsonify({'error': 'Ten termin jest już zajęty'}), 400
         
-        # Проверяем, не записан ли пациент на то же время к другому врачу
+        #Проверяем, не записан ли пациент на то же время к другому врачу
         patient_conflict = Wizyta.query.filter(
             Wizyta.id_pacjenta == current_user.id_pacjenta,
             Wizyta.data_wizyty == slot_datetime,
@@ -196,7 +196,7 @@ def api_book_appointment():
         if patient_conflict:
             return jsonify({'error': 'Masz już wizytę o tej godzinie'}), 400
         
-        # Создаем визиту
+        #Создаем визиту
         wizyta = Wizyta(
             id_pacjenta=current_user.id_pacjenta,
             id_lekarza=doctor_id,
@@ -221,7 +221,7 @@ def api_book_appointment():
 @pacjent_bp.route('/api/cancel-appointment/<int:appointment_id>', methods=['POST'])
 @login_required
 def api_cancel_appointment(appointment_id):
-    """API anulowania wizyty przez пациента"""
+    #API anulowania wizyty przez pacjenta
     if not is_pacjent():
         return jsonify({'error': 'Unauthorized'}), 403
     
@@ -253,7 +253,7 @@ def api_cancel_appointment(appointment_id):
 @pacjent_bp.route('/api/my-calendar')
 @login_required
 def api_my_calendar():
-    """API kalendarza pacjenta - tylko jego wizyty"""
+    #API kalendarza pacjenta - tylko jego wizyty
     if not is_pacjent():
         return jsonify({'error': 'Unauthorized'}), 403
     
@@ -292,6 +292,10 @@ def api_my_calendar():
     
     return jsonify(appointments_by_day)
 
+        #  o|_|o
+        #  o|x|_
+        #  x|x|x
+
 @pacjent_bp.route('/leczenie')
 @login_required
 def view_treatment():
@@ -304,7 +308,7 @@ def view_treatment():
 @pacjent_bp.route('/api/my-historia')
 @login_required
 def api_my_historia():
-    """API для получения истории медицинской пациента"""
+    #API для получения истории медицинской пациента
     if not is_pacjent():
         return jsonify({'error': 'Unauthorized'}), 403
     
@@ -330,7 +334,7 @@ def api_my_historia():
 @pacjent_bp.route('/api/my-recepty')
 @login_required
 def api_my_recepty():
-    """API dla получения рецептов пациента"""
+    #API dla получения рецептов пациента
     if not is_pacjent():
         return jsonify({'error': 'Unauthorized'}), 403
     
@@ -357,7 +361,7 @@ def api_my_recepty():
 @pacjent_bp.route('/api/my-wizyty')
 @login_required
 def api_my_wizyty():
-    """API для получения визит пациента"""
+    #API для получения визит пациента
     if not is_pacjent():
         return jsonify({'error': 'Unauthorized'}), 403
     

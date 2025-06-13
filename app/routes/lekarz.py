@@ -12,7 +12,7 @@ from datetime import datetime, timedelta, time, date
 lekarz_bp = Blueprint('lekarz_bp', __name__, url_prefix='/lekarz')
 
 def is_lekarz():
-    """Проверяет, является ли текущий пользователь врачом"""
+    #Проверяет, является ли текущий пользователь врачом
     return (hasattr(current_user, 'id_lekarza') or 
             current_user.__class__.__name__ == 'Lekarz' or
             hasattr(current_user, '__tablename__') and current_user.__tablename__ == 'lekarze')
@@ -109,7 +109,7 @@ def pacjent_leczenie(id_pacjenta):
     
     pacjent = Pacjent.query.get_or_404(id_pacjenta)
     
-    # Sprawdź czy lekarz ma prawo do tego pacjenta (miał z nim wizytę)
+    # czy lekarz miał z nim wizytę
     wizyta_check = Wizyta.query.filter_by(
         id_lekarza=current_user.id_lekarza,
         id_pacjenta=id_pacjenta
@@ -197,7 +197,7 @@ def zakoncz_wizyte(id_wizyty):
     try:
         wizyta = Wizyta.query.get_or_404(id_wizyty)
         
-        # Sprawdź czy to wizyta tego lekarza
+        #czy to wizyta tego lekarza
         if wizyta.id_lekarza != current_user.id_lekarza:
             flash('Nie masz uprawnień do tej wizyty.', 'danger')
             return redirect(url_for('lekarz_bp.wizyty'))
@@ -244,7 +244,7 @@ def zakoncz_wizyte(id_wizyty):
 @lekarz_bp.route('/api/my-schedule')
 @login_required
 def api_my_schedule():
-    """API для получения расписания врача с 15-минутными слотами"""
+    #API для получения расписания врача 
     if not is_lekarz():
         return jsonify({'error': 'Unauthorized'}), 403
     
@@ -345,7 +345,7 @@ def api_my_schedule():
 @lekarz_bp.route('/api/book-slot', methods=['POST'])
 @login_required
 def api_book_slot():
-    """API для бронирования слота (для пациентов)"""
+    #API для бронирования слота (для пациентов)
     data = request.get_json()
     
     try:
@@ -387,7 +387,7 @@ def api_book_slot():
 @lekarz_bp.route('/api/patients')
 @login_required
 def api_patients():
-    """API для получения списка всех пациентов"""
+    #API для получения списка всех пациентов
     if not is_lekarz():
         return jsonify({'error': 'Unauthorized'}), 403
     

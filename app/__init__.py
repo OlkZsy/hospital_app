@@ -57,6 +57,8 @@ def create_app():
     app.register_blueprint(administrator_bp)
     app.register_blueprint(recepcjonista_bp)
 
+
+
     # Главная страница - переадресация на логин
     @app.route('/')
     def index():

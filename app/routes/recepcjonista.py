@@ -14,7 +14,7 @@ from datetime import datetime, date, timedelta
 
 
 def auto_complete_past_visits():
-    """Автоматически завершает прошедшие визиты"""
+    #автоматически завершает прошедшие визиты
     try:
         cutoff_time = datetime.now() - timedelta(minutes=30)
         
@@ -49,7 +49,7 @@ def auto_complete_past_visits():
 recepcjonista_bp = Blueprint('recepcjonista_bp', __name__, url_prefix='/recepcjonista')
 
 def is_recepcjonista():
-    """Проверяет, является ли текущий пользователь рецепционистом"""
+    #проверяет, является ли текущий пользователь рецепционистом
     try:
         return isinstance(current_user, Recepcjonista)
     except:
@@ -92,7 +92,7 @@ def pacjent_details(id_pacjenta):
     
     pacjent = Pacjent.query.get_or_404(id_pacjenta)
     
-    # Recepty bez diagnozy
+    # рецепты без диагноза
     recepty = Recepta.query.filter_by(id_pacjenta=id_pacjenta).order_by(Recepta.data_wystawienia.desc()).all()
     wizyty = Wizyta.query.filter_by(id_pacjenta=id_pacjenta).order_by(Wizyta.data_wizyty.desc()).all()
     
@@ -252,7 +252,7 @@ def zapisz_pacjenta():
     return render_template('recepcjonista/zapisz_pacjenta.html', 
                          pacjenci=pacjenci, lekarze=lekarze)
 
-# API ENDPOINTS
+#API ENDPOINTS
 
 @recepcjonista_bp.route('/api/lekarz/<int:id_lekarza>/schedule')
 @login_required
@@ -281,7 +281,7 @@ def api_lekarz_schedule(id_lekarza):
     if not harmonogram:
         return jsonify({'slots': [], 'message': f'Brak harmonogramu na {weekday}'})
     
-    # Получаем занятые слоты
+    #Получаем занятые слоты
     wizyty = Wizyta.query.filter(
         Wizyta.id_lekarza == id_lekarza,
         db.func.date(Wizyta.data_wizyty) == target_date,
@@ -296,7 +296,7 @@ def api_lekarz_schedule(id_lekarza):
             'id': wizyta.id_wizyty
         })
     
-    # Генерируем слоты
+    #Геерируем слоты
     slots = []
     current_time = datetime.combine(target_date, harmonogram.godzina_start)
     end_time = datetime.combine(target_date, harmonogram.godzina_koniec)
@@ -335,7 +335,7 @@ def api_lekarz_schedule(id_lekarza):
 @recepcjonista_bp.route('/api/book-appointment', methods=['POST'])
 @login_required
 def api_book_appointment():
-    """API записи пациента к врачу рецепционистом"""
+    #API записи пациента к врачу рецепционистом
     if not is_recepcjonista():
         return jsonify({'error': 'Unauthorized'}), 403
     
@@ -347,7 +347,7 @@ def api_book_appointment():
         patient_id = data['patient_id']
         notes = data.get('notes', '')
         
-        # Проверяем, не занят ли слот
+        #Проверяем, не занят ли слот
         existing = Wizyta.query.filter(
             Wizyta.id_lekarza == doctor_id,
             Wizyta.data_wizyty == slot_datetime,
@@ -357,7 +357,7 @@ def api_book_appointment():
         if existing:
             return jsonify({'error': 'Ten termin jest już zajęty'}), 400
         
-        # Создаем визиту
+        #Создаем визиту
         wizyta = Wizyta(
             id_pacjenta=patient_id,
             id_lekarza=doctor_id,
