@@ -12,6 +12,6 @@ class Recepcjonista(UserMixin, db.Model):
     haslo_hash = db.Column(db.String(255), nullable=False)
 
     def get_id(self):
-        return str(self.id_recepcjonisty)
+        return f"recepcjonista_{self.id_recepcjonisty}"  # recepcjonista_1, etc.
 
     wizyty_utworzone = db.relationship('Wizyta', backref='autor', lazy=True, foreign_keys='Wizyta.utworzona_przez')

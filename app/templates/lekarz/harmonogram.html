@@ -1,0 +1,425 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Mój harmonogram pracy</h2>
+        <a href="{{ url_for('lekarz_bp.dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Powrót do panelu
+        </a>
+    </div>
+    
+    {% if not harmonogram %}
+    <div class="alert alert-warning">
+        <h5><i class="fas fa-exclamation-triangle"></i> Brak harmonogramu</h5>
+        <p>Nie masz jeszcze ustawionego harmonogramu pracy. Uzupełnij formularz poniżej, aby pacjenci mogli umówić się na wizyty.</p>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <h6><i class="fas fa-info-circle"></i> Aktualny harmonogram</h6>
+        <p>Możesz w każdej chwili zmienić swój harmonogram pracy. Zmiany będą widoczne dla pacjentów od razu.</p>
+    </div>
+    {% endif %}
+    
+    <div class="card">
+        <div class="card-header">
+            <h5><i class="fas fa-calendar-alt"></i> Ustaw harmonogram pracy</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" id="scheduleForm">
+                <div class="row">
+                    {% set dni = [
+                        ('Poniedziałek', 'poniedziałek'),
+                        ('Wtorek', 'wtorek'),
+                        ('Środa', 'środa'),
+                        ('Czwartek', 'czwartek'),
+                        ('Piątek', 'piątek'),
+                        ('Sobota', 'sobota'),
+                        ('Niedziela', 'niedziela')
+                    ] %}
+                    
+                    {% for dzien_nazwa, dzien_id in dni %}
+                    <div class="col-lg-6 mb-4">
+                        <div class="card schedule-day-card">
+                            <div class="card-body">
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input day-checkbox" 
+                                           type="checkbox" 
+                                           id="{{ dzien_id }}_aktywny" 
+                                           name="{{ dzien_id }}_aktywny"
+                                           data-day="{{ dzien_id }}"
+                                           {% if harmonogram.get(dzien_nazwa) %}checked{% endif %}>
+                                    <label class="form-check-label fw-bold" for="{{ dzien_id }}_aktywny">
+                                        {{ dzien_nazwa }}
+                                    </label>
+                                </div>
+                                
+                                <div class="time-inputs" id="{{ dzien_id }}_inputs" 
+                                     style="{% if not harmonogram.get(dzien_nazwa) %}display: none;{% endif %}">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <label for="{{ dzien_id }}_start" class="form-label">Od:</label>
+                                            <input type="time" 
+                                                   class="form-control" 
+                                                   id="{{ dzien_id }}_start" 
+                                                   name="{{ dzien_id }}_start"
+                                                   value="{% if harmonogram.get(dzien_nazwa) %}{{ harmonogram[dzien_nazwa].godzina_start.strftime('%H:%M') }}{% else %}09:00{% endif %}"
+                                                   min="06:00" 
+                                                   max="22:00">
+                                        </div>
+                                        <div class="col-6">
+                                            <label for="{{ dzien_id }}_koniec" class="form-label">Do:</label>
+                                            <input type="time" 
+                                                   class="form-control" 
+                                                   id="{{ dzien_id }}_koniec" 
+                                                   name="{{ dzien_id }}_koniec"
+                                                   value="{% if harmonogram.get(dzien_nazwa) %}{{ harmonogram[dzien_nazwa].godzina_koniec.strftime('%H:%M') }}{% else %}17:00{% endif %}"
+                                                   min="06:00" 
+                                                   max="22:00">
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <small class="text-muted">
+                                            <i class="fas fa-clock"></i> 
+                                            Czas pracy: <span class="work-duration" data-day="{{ dzien_id }}">8 godzin</span>
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Szybkie ustawienia -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h6><i class="fas fa-magic"></i> Szybkie ustawienia</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary" onclick="setStandardHours()">
+                                <i class="fas fa-business-time"></i> Standardowe (9:00-17:00)
+                            </button>
+                            <button type="button" class="btn btn-outline-success" onclick="setMorningHours()">
+                                <i class="fas fa-sun"></i> Poranne (7:00-15:00)
+                            </button>
+                            <button type="button" class="btn btn-outline-warning" onclick="setEveningHours()">
+                                <i class="fas fa-moon"></i> Popołudniowe (13:00-21:00)
+                            </button>
+                            <button type="button" class="btn btn-outline-danger" onclick="clearAll()">
+                                <i class="fas fa-times"></i> Wyczyść wszystko
+                            </button>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <div class="form-check form-check-inline me-4">
+                                <input class="form-check-input" type="checkbox" id="weekdaysOnly" checked>
+                                <label class="form-check-label" for="weekdaysOnly">
+                                    Tylko dni robocze (Pon-Pt)
+                                </label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" id="includeWeekend">
+                                <label class="form-check-label" for="includeWeekend">
+                                    Uwzględnij weekend
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Podsumowanie -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h6><i class="fas fa-chart-bar"></i> Podsumowanie tygodnia</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-md-3">
+                                <h4 class="text-primary" id="totalDays">0</h4>
+                                <small>Dni pracy</small>
+                            </div>
+                            <div class="col-md-3">
+                                <h4 class="text-success" id="totalHours">0</h4>
+                                <small>Godzin tygodniowo</small>
+                            </div>
+                            <div class="col-md-3">
+                                <h4 class="text-info" id="possibleSlots">0</h4>
+                                <small>Możliwych wizyt (15min)</small>
+                            </div>
+                            <div class="col-md-3">
+                                <h4 class="text-warning" id="avgPerDay">0</h4>
+                                <small>Średnio na dzień</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                    <button type="button" class="btn btn-outline-secondary me-md-2" onclick="resetForm()">
+                        <i class="fas fa-undo"></i> Przywróć oryginalne
+                    </button>
+                    <button type="submit" class="btn btn-success btn-lg">
+                        <i class="fas fa-save"></i> Zapisz harmonogram
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Podgląd kalendarza -->
+    {% if harmonogram %}
+    <div class="card mt-4">
+        <div class="card-header">
+            <h6><i class="fas fa-eye"></i> Podgląd harmonogramu</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for dzien_nazwa, dzien_id in dni %}
+                <div class="col-md-6 col-lg-4 mb-2">
+                    {% if harmonogram.get(dzien_nazwa) %}
+                    <div class="alert alert-success py-2 mb-2">
+                        <strong>{{ dzien_nazwa }}</strong><br>
+                        <small>{{ harmonogram[dzien_nazwa].godzina_start.strftime('%H:%M') }} - {{ harmonogram[dzien_nazwa].godzina_koniec.strftime('%H:%M') }}</small>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-secondary py-2 mb-2">
+                        <strong>{{ dzien_nazwa }}</strong><br>
+                        <small class="text-muted">Dzień wolny</small>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+// Управление чекбоксами дней
+document.querySelectorAll('.day-checkbox').forEach(function(checkbox) {
+    checkbox.addEventListener('change', function() {
+        var day = this.dataset.day;
+        var inputs = document.getElementById(day + '_inputs');
+        
+        if (this.checked) {
+            inputs.style.display = 'block';
+        } else {
+            inputs.style.display = 'none';
+        }
+        
+        updateSummary();
+    });
+});
+
+// Обновление продолжительности работы
+document.querySelectorAll('input[type="time"]').forEach(function(input) {
+    input.addEventListener('change', function() {
+        var day = this.name.split('_')[0];
+        updateWorkDuration(day);
+        updateSummary();
+    });
+});
+
+function updateWorkDuration(day) {
+    var startInput = document.getElementById(day + '_start');
+    var endInput = document.getElementById(day + '_koniec');
+    var durationSpan = document.querySelector('.work-duration[data-day="' + day + '"]');
+    
+    if (startInput && endInput && durationSpan) {
+        var start = startInput.value;
+        var end = endInput.value;
+        
+        if (start && end) {
+            var startTime = new Date('2000-01-01 ' + start);
+            var endTime = new Date('2000-01-01 ' + end);
+            var diffMs = endTime - startTime;
+            var hours = Math.floor(diffMs / (1000 * 60 * 60));
+            var minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+            
+            if (hours > 0) {
+                durationSpan.textContent = hours + ' godz' + (minutes > 0 ? ' ' + minutes + ' min' : '');
+            } else {
+                durationSpan.textContent = minutes + ' min';
+            }
+        }
+    }
+}
+
+function updateSummary() {
+    var totalDays = 0;
+    var totalMinutes = 0;
+    
+    document.querySelectorAll('.day-checkbox:checked').forEach(function(checkbox) {
+        var day = checkbox.dataset.day;
+        var startInput = document.getElementById(day + '_start');
+        var endInput = document.getElementById(day + '_koniec');
+        
+        if (startInput.value && endInput.value) {
+            totalDays++;
+            
+            var start = new Date('2000-01-01 ' + startInput.value);
+            var end = new Date('2000-01-01 ' + endInput.value);
+            totalMinutes += (end - start) / (1000 * 60);
+        }
+    });
+    
+    var totalHours = Math.floor(totalMinutes / 60);
+    var possibleSlots = Math.floor(totalMinutes / 15);
+    var avgPerDay = totalDays > 0 ? Math.floor(possibleSlots / totalDays) : 0;
+    
+    document.getElementById('totalDays').textContent = totalDays;
+    document.getElementById('totalHours').textContent = totalHours;
+    document.getElementById('possibleSlots').textContent = possibleSlots;
+    document.getElementById('avgPerDay').textContent = avgPerDay;
+}
+
+// Szybkie ustawienia
+function setStandardHours() {
+    setHoursForDays('09:00', '17:00', document.getElementById('weekdaysOnly').checked);
+}
+
+function setMorningHours() {
+    setHoursForDays('07:00', '15:00', document.getElementById('weekdaysOnly').checked);
+}
+
+function setEveningHours() {
+    setHoursForDays('13:00', '21:00', document.getElementById('weekdaysOnly').checked);
+}
+
+function setHoursForDays(start, end, weekdaysOnly) {
+    var days = ['poniedziałek', 'wtorek', 'środa', 'czwartek', 'piątek'];
+    if (!weekdaysOnly || document.getElementById('includeWeekend').checked) {
+        days.push('sobota', 'niedziela');
+    }
+    
+    days.forEach(function(day) {
+        var checkbox = document.getElementById(day + '_aktywny');
+        var startInput = document.getElementById(day + '_start');
+        var endInput = document.getElementById(day + '_koniec');
+        
+        checkbox.checked = true;
+        startInput.value = start;
+        endInput.value = end;
+        
+        document.getElementById(day + '_inputs').style.display = 'block';
+        updateWorkDuration(day);
+    });
+    
+    updateSummary();
+}
+
+function clearAll() {
+    if (confirm('Czy na pewno chcesz wyczyścić cały harmonogram?')) {
+        document.querySelectorAll('.day-checkbox').forEach(function(checkbox) {
+            checkbox.checked = false;
+            var day = checkbox.dataset.day;
+            document.getElementById(day + '_inputs').style.display = 'none';
+        });
+        updateSummary();
+    }
+}
+
+function resetForm() {
+    if (confirm('Czy na pewno chcesz przywrócić oryginalne ustawienia?')) {
+        location.reload();
+    }
+}
+
+// Walidacja formularza
+document.getElementById('scheduleForm').addEventListener('submit', function(e) {
+    var hasAnyDay = false;
+    var hasErrors = false;
+    
+    document.querySelectorAll('.day-checkbox:checked').forEach(function(checkbox) {
+        hasAnyDay = true;
+        var day = checkbox.dataset.day;
+        var startInput = document.getElementById(day + '_start');
+        var endInput = document.getElementById(day + '_koniec');
+        
+        if (!startInput.value || !endInput.value) {
+            hasErrors = true;
+        }
+        
+        if (startInput.value >= endInput.value) {
+            hasErrors = true;
+            alert('Godzina zakończenia musi być późniejsza niż godzina rozpoczęcia dla dnia: ' + day);
+        }
+    });
+    
+    if (!hasAnyDay) {
+        e.preventDefault();
+        alert('Musisz wybrać przynajmniej jeden dzień pracy.');
+        return false;
+    }
+    
+    if (hasErrors) {
+        e.preventDefault();
+        alert('Proszę sprawdzić wprowadzone godziny.');
+        return false;
+    }
+});
+
+// Inicjalizacja przy załadowaniu
+document.addEventListener('DOMContentLoaded', function() {
+    // Обновляем продолжительность для всех дней
+    var days = ['poniedziałek', 'wtorek', 'środa', 'czwartek', 'piątek', 'sobota', 'niedziela'];
+    days.forEach(function(day) {
+        updateWorkDuration(day);
+    });
+    
+    updateSummary();
+});
+</script>
+
+<style>
+.schedule-day-card {
+    transition: all 0.2s;
+    border-left: 4px solid #dee2e6;
+}
+
+.schedule-day-card:has(.day-checkbox:checked) {
+    border-left-color: #198754;
+    background-color: #f8fff9;
+}
+
+.time-inputs {
+    transition: all 0.3s ease;
+}
+
+.work-duration {
+    font-weight: 500;
+    color: #198754;
+}
+
+.btn-group .btn {
+    font-size: 0.875rem;
+}
+
+.alert.py-2 {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+}
+
+input[type="time"]:focus {
+    border-color: #198754;
+    box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+}
+
+@media (max-width: 768px) {
+    .btn-group {
+        flex-direction: column;
+    }
+    
+    .btn-group .btn {
+        margin-bottom: 0.5rem;
+    }
+}
+</style>
+{% endblock %}

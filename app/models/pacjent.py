@@ -20,7 +20,7 @@ class Pacjent(UserMixin, db.Model):
 
 
     def get_id(self):
-        return str(self.id_pacjenta)
+        return f"pacjent_{self.id_pacjenta}"  # pacjent_1, pacjent_2, etc.
     
 
     

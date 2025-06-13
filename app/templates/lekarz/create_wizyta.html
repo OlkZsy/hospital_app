@@ -159,9 +159,9 @@ class AppointmentCalendar {
     }
     
     init() {
-        this.updateMonthDisplay();
-        this.loadMonthSchedule();
-        this.setupForm();
+    this.updateMonthDisplay();
+    this.loadMonthSchedule();
+    this.setupForm();
     }
     
     setupForm() {
@@ -187,11 +187,12 @@ class AppointmentCalendar {
             }
         });
 
-        showAppointmentDetails(appointmentId) {
+        
+    }
+    showAppointmentDetails(appointmentId) {
             // Простая реализация - можно расширить
             alert('Szczegóły wizyty #' + appointmentId + ' - funkcja w budowie');
         }
-    }
     
     updateMonthDisplay() {
         var monthYearEl = document.getElementById('calendarMonthYear');
@@ -206,64 +207,65 @@ class AppointmentCalendar {
     var year = this.currentDate.getFullYear();
     var month = this.currentDate.getMonth();
     
-    // Первый и последний день месяца
     var firstDay = new Date(year, month, 1);
     var lastDay = new Date(year, month + 1, 0);
+    var startDay = (firstDay.getDay() + 6) % 7;
     
-    // Определяем с какого дня недели начинать (понедельник = 0)
-    var startDay = (firstDay.getDay() + 6) % 7; // Преобразуем к понедельнику = 0
-    
+    // НОВЫЙ ПОДХОД - создаем фиксированную сетку 6x7
     var calendarHTML = '';
-    var dayCount = 0;
+    var totalCells = 42; // 6 недель по 7 дней
     
-    // Создаем недели
-    for (var week = 0; week < 6; week++) {
-        calendarHTML += '<div class="row mb-1">';
-        
-        for (var day = 0; day < 7; day++) {
-            if (dayCount < startDay) {
-                // Дни предыдущего месяца
-                calendarHTML += '<div class="col appointment-day other-month"></div>';
-            } else {
-                var dayOfMonth = dayCount - startDay + 1;
-                if (dayOfMonth <= lastDay.getDate()) {
-                    // Дни текущего месяца
-                    var cellDate = new Date(year, month, dayOfMonth);
-                    var dateStr = year + '-' + 
-                                String(month + 1).padStart(2, '0') + '-' + 
-                                String(dayOfMonth).padStart(2, '0');
-                    var isToday = dateStr === new Date().toISOString().split('T')[0];
-                    var isPast = cellDate < new Date().setHours(0,0,0,0);
-                    
-                    var scheduleInfo = this.getScheduleInfo(dateStr, isPast);
-                    var cellClass = 'appointment-day current-month ' + scheduleInfo.cssClass;
-                    if (isToday) cellClass += ' today';
-                    
-                    var clickHandler = 'onclick="appointmentCalendar.showDayInfo(\'' + dateStr + '\')"';
-                    
-                    calendarHTML += '<div class="col ' + cellClass + '" ' + clickHandler + '>';
-                    calendarHTML += '<div class="day-number">' + dayOfMonth + '</div>';
-                    calendarHTML += '<div class="day-info">' + scheduleInfo.text + '</div>';
-                    calendarHTML += '</div>';
-                } else {
-                    // Дни следующего месяца
-                    calendarHTML += '<div class="col appointment-day other-month"></div>';
-                }
-            }
-            
-            dayCount++;
+    for (var cellIndex = 0; cellIndex < totalCells; cellIndex++) {
+        // Начинаем новую строку каждые 7 дней
+        if (cellIndex % 7 === 0) {
+            if (cellIndex > 0) calendarHTML += '</div>'; // Закрываем предыдущую строку
+            calendarHTML += '<div class="calendar-week" style="display: flex; margin-bottom: 2px;">';
         }
         
-        calendarHTML += '</div>';
+        var dayOfMonth = cellIndex - startDay + 1;
+        var cellClass = 'appointment-day';
+        var content = '';
         
-        // Прекращаем если прошли все дни месяца
-        if (dayCount - startDay > lastDay.getDate()) break;
+        if (cellIndex < startDay || dayOfMonth > lastDay.getDate()) {
+            // Пустые ячейки или дни других месяцев
+            cellClass += ' other-month';
+        } else {
+            // Дни текущего месяца
+            var cellDate = new Date(year, month, dayOfMonth);
+            var dateStr = year + '-' + 
+                        String(month + 1).padStart(2, '0') + '-' + 
+                        String(dayOfMonth).padStart(2, '0');
+            var isToday = dateStr === new Date().toISOString().split('T')[0];
+            var isPast = cellDate < new Date().setHours(0,0,0,0);
+            
+            var scheduleInfo = this.getScheduleInfo(dateStr, isPast);
+            cellClass += ' current-month ' + scheduleInfo.cssClass;
+            if (isToday) cellClass += ' today';
+            
+            var clickHandler = 'onclick="appointmentCalendar.showDayInfo(\'' + dateStr + '\')"';
+            
+            content = '<div class="day-number">' + dayOfMonth + '</div>' +
+                     '<div class="day-info">' + scheduleInfo.text + '</div>';
+            
+            calendarHTML += '<div class="calendar-cell" style="flex: 1; margin: 1px;" ' + clickHandler + '>' +
+                           '<div class="' + cellClass + '">' + content + '</div>' +
+                           '</div>';
+        }
+        
+        if (cellIndex < startDay || dayOfMonth > lastDay.getDate()) {
+            calendarHTML += '<div class="calendar-cell" style="flex: 1; margin: 1px;">' +
+                           '<div class="' + cellClass + '"></div>' +
+                           '</div>';
+        }
     }
     
+    calendarHTML += '</div>'; // Закрываем последнюю строку
     calendarDays.innerHTML = calendarHTML;
 }
 
-getScheduleInfo(dateStr, isPast) {
+
+getScheduleInfo(dateStr, isPast) 
+{
     var schedule = this.monthSchedule[dateStr];
     
     if (!schedule) {
@@ -277,7 +279,7 @@ getScheduleInfo(dateStr, isPast) {
     if (isPast) {
         return { 
             cssClass: 'past-day', 
-            text: totalAppointments > 0 ?  ' Wizyty: '+ totalAppointments : 'Brak wizyt', 
+            text: totalAppointments > 0 ? 'Wizyty: ' + totalAppointments : 'Brak wizyt', 
             hasSchedule: true 
         };
     }
@@ -299,16 +301,17 @@ getScheduleInfo(dateStr, isPast) {
             hasSchedule: availableSlots.length > 0 
         };
     } else {
-    return { 
-        cssClass: availableSlots.length > 0 ? 'mixed-schedule' : 'all-occupied', 
-        text: 'Wizyty: ' + totalAppointments  + '<br>Dostępne: ' + availableSlots.length, 
-        hasSchedule: true 
-    };
-}
+        return { 
+            cssClass: availableSlots.length > 0 ? 'mixed-schedule' : 'all-occupied', 
+            text: 'Wizyty: ' + totalAppointments + '<br>Dostępne: ' + availableSlots.length, 
+            hasSchedule: true 
+        };
+    }
 }
 
 
-showDayInfo(dateStr) {
+showDayInfo(dateStr) 
+{
     var self = this;
     var modal = new bootstrap.Modal(document.getElementById('timeSlotModal'));
     var modalTitle = document.getElementById('timeSlotModalLabel');
@@ -341,7 +344,8 @@ showDayInfo(dateStr) {
     }
 }
 
-renderDayInfo(slots, dateStr, container) {
+renderDayInfo(slots, dateStr, container) 
+{
     var appointments = slots.filter(function(slot) { return !slot.available; });
     var availableSlots = slots.filter(function(slot) { return slot.available; });
     
@@ -414,7 +418,7 @@ renderDayInfo(slots, dateStr, container) {
     }
     
     // Если НЕТ ВИЗИТ ВООБЩЕ - показываем соответствующее сообщение
-    if (appointments.length === 0) {
+    if (appointments.length === 0 && isPastDay) {
         html = '<div class="alert alert-info text-center">' +
                '<i class="fas fa-calendar-times fa-2x mb-2"></i>' +
                '<h6>Brak wizyt</h6>' +
@@ -427,7 +431,8 @@ renderDayInfo(slots, dateStr, container) {
     
 
 
-    loadMonthSchedule() {
+    loadMonthSchedule() 
+    {
         var self = this;
         this.monthSchedule = {};
         
@@ -448,7 +453,8 @@ renderDayInfo(slots, dateStr, container) {
         });
     }
     
-    loadDaySchedule(dateStr) {
+    loadDaySchedule(dateStr) 
+    {
         var self = this;
         return fetch('/lekarz/api/my-schedule?date=' + dateStr)
             .then(function(response) {
@@ -464,7 +470,8 @@ renderDayInfo(slots, dateStr, container) {
             });
     }
     
-    showTimeSlots(dateStr) {
+    showTimeSlots(dateStr) 
+    {
         var modal = new bootstrap.Modal(document.getElementById('timeSlotModal'));
         var modalTitle = document.getElementById('timeSlotModalLabel');
         var modalContent = document.getElementById('timeSlotsContent');
@@ -482,7 +489,8 @@ renderDayInfo(slots, dateStr, container) {
         }
     }
     
-    renderTimeSlots(slots, dateStr, container) {
+    renderTimeSlots(slots, dateStr, container) 
+    {
     var now = new Date();
     var currentTime = now.getTime();
     var bufferMinutes = 15; // Минимум 15 минут от текущего времени
@@ -544,7 +552,8 @@ renderDayInfo(slots, dateStr, container) {
                          '<div class="row g-2">' + slotsHtml + '</div>';
 }
     
-    selectTimeSlot(dateStr, timeStr, datetime) {
+    selectTimeSlot(dateStr, timeStr, datetime) 
+    {
         this.selectedSlot = { dateStr: dateStr, timeStr: timeStr, datetime: datetime };
         
         // Обновляем поле формы
@@ -570,7 +579,8 @@ renderDayInfo(slots, dateStr, container) {
         this.showSelectionNotification(dateStr, timeStr);
     }
     
-    showSelectionNotification(dateStr, timeStr) {
+    showSelectionNotification(dateStr, timeStr) 
+    {
         // Создаем временное уведомление
         var notification = document.createElement('div');
         notification.className = 'alert alert-success position-fixed';
@@ -710,6 +720,29 @@ document.addEventListener('DOMContentLoaded', function() {
     border: 2px solid #007bff;
     font-weight: bold;
     box-shadow: 0 0 10px rgba(0,123,255,0.3);
+}
+
+.calendar-week {
+    display: flex !important;
+    width: 100%;
+}
+
+.calendar-cell {
+    flex: 1 !important;
+    min-width: 0;
+    max-width: 14.285714%;
+}
+
+.appointment-day {
+    min-height: 80px;
+    border: 1px solid #dee2e6;
+    padding: 6px;
+    border-radius: 5px;
+    transition: all 0.2s;
+    font-size: 12px;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
 }
 </style>
 {% endblock %}

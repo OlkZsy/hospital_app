@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>{{ pacjent.imie }} {{ pacjent.nazwisko }}</h2>
+        <div>
+            <a href="{{ url_for('recepcjonista_bp.edit_pacjent', id_pacjenta=pacjent.id_pacjenta) }}" class="btn btn-warning">Edytuj dane</a>
+            <a href="{{ url_for('recepcjonista_bp.pacjenci') }}" class="btn btn-secondary">Powrót</a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Dane pacjenta -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Dane osobowe</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>PESEL:</strong> {{ pacjent.pesel }}</p>
+                    <p><strong>Data urodzenia:</strong> {{ pacjent.data_urodzenia.strftime('%d.%m.%Y') if pacjent.data_urodzenia else 'Brak' }}</p>
+                    <p><strong>Email:</strong> {{ pacjent.email }}</p>
+                    <p><strong>Telefon:</strong> {{ pacjent.telefon or 'Brak' }}</p>
+                    <p><strong>Adres:</strong> {{ pacjent.adres or 'Brak' }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recepty -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Recepty</h5>
+                </div>
+                <div class="card-body">
+                    {% if recepty %}
+                        {% for recepta in recepty[:5] %}
+                        <div class="border-bottom pb-2 mb-2">
+                            <strong>{{ recepta.data_wystawienia.strftime('%d.%m.%Y') }}</strong><br>
+                            <small>{{ recepta.leki }}</small><br>
+                            <small class="text-muted">Dr {{ recepta.lekarz.imie }} {{ recepta.lekarz.nazwisko }}</small>
+                        </div>
+                        {% endfor %}
+                        {% if recepty|length > 5 %}
+                        <small class="text-muted">I {{ recepty|length - 5 }} więcej...</small>
+                        {% endif %}
+                    {% else %}
+                        <p class="text-muted">Brak recept</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Wizyty -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Ostatnie wizyty</h5>
+                </div>
+                <div class="card-body">
+                    {% if wizyty %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Lekarz</th>
+                                    <th>Status</th>
+                                    <th>Notatki</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for wizyta in wizyty[:10] %}
+                                <tr>
+                                    <td>{{ wizyta.data_wizyty.strftime('%d.%m.%Y %H:%M') }}</td>
+                                    <td>Dr {{ wizyta.lekarz.imie }} {{ wizyta.lekarz.nazwisko }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if wizyta.status == 'zakonczona' %}success{% elif wizyta.status == 'zaplanowana' %}warning{% else %}secondary{% endif %}">
+                                            {{ wizyta.status }}
+                                        </span>
+                                    </td>
+                                    <td>{{ wizyta.notatki[:50] if wizyta.notatki else '-' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">Brak wizyt</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

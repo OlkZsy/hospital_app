@@ -1,41 +1,474 @@
-{% extends 'base.html' %}
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rejestracja - ASKLEPIOS Medical Center</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:wght@300;400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --asklepios-primary: #2E86AB;
+            --asklepios-secondary: #A23B72;
+            --asklepios-accent: #F18F01;
+            --asklepios-success: #32936F;
+            --asklepios-light: #F8FFFE;
+            --asklepios-dark: #0A1128;
+        }
 
-{% block content %}
-  <h2>Rejestracja</h2>
-  <form method="POST" action="">
-    {{ form.hidden_tag() }}
-    <p>
-      {{ form.imie.label }}<br>
-      {{ form.imie(size=32) }}
-    </p>
-    <p>
-      {{ form.nazwisko.label }}<br>
-      {{ form.nazwisko(size=32) }}
-    </p>
-    <p>
-      {{ form.email.label }}<br>
-      {{ form.email(size=32) }}
-    </p>
-    <p>
-      {{ form.telefon.label }}<br>
-      {{ form.telefon(size=32) }}
-    </p>
-    <p>
-      {{ form.haslo.label }}<br>
-      {{ form.haslo(size=32) }}
-    </p>
-    <p>
-      {{ form.adres.label }}<br>
-      {{ form.adres(size=64) }}
-    </p>
-    <p>
-      {{ form.data_urodzenia.label }}<br>
-      {{ form.data_urodzenia(min="1900-01-01", max="2025-12-31") }}
-    </p>
-    <p>
-      {{ form.pesel.label }}<br>
-      {{ form.pesel(size=11) }}
-    </p>
-    <p>{{ form.submit() }}</p>
-  </form>
-{% endblock %}
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #32936F 0%, #2E86AB 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow-x: hidden;
+            padding: 2rem 0;
+        }
+
+        /* Animated background */
+        body::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="medical" patternUnits="userSpaceOnUse" width="25" height="25"><path d="M12.5,5 L12.5,20 M5,12.5 L20,12.5" stroke="rgba(255,255,255,0.03)" stroke-width="1"/></pattern></defs><rect width="100" height="100" fill="url(%23medical)"/></svg>') repeat;
+            animation: float 25s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-30px) rotate(2deg); }
+        }
+
+        .register-container {
+            max-width: 500px;
+            width: 100%;
+            margin: 0 20px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .register-card {
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 2.5rem;
+            box-shadow: 
+                0 25px 70px rgba(0, 0, 0, 0.35),
+                0 0 0 1px rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .register-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 
+                0 35px 90px rgba(0, 0, 0, 0.45),
+                0 0 0 1px rgba(255, 255, 255, 0.4);
+        }
+
+        .brand-logo {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .brand-icon {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, var(--asklepios-success), var(--asklepios-primary));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            color: white;
+            font-size: 1.8rem;
+            box-shadow: 0 10px 30px rgba(50, 147, 111, 0.3);
+            animation: pulse 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
+
+        .brand-title {
+            font-family: 'Merriweather', serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--asklepios-dark);
+            margin-bottom: 0.3rem;
+        }
+
+        .brand-subtitle {
+            color: var(--asklepios-success);
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .register-subtitle {
+            color: var(--asklepios-primary);
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .form-floating {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        .form-control {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid rgba(50, 147, 111, 0.2);
+            border-radius: 14px;
+            padding: 0.8rem;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            height: auto;
+        }
+
+        .form-control:focus {
+            background: white;
+            border-color: var(--asklepios-success);
+            box-shadow: 0 0 0 4px rgba(50, 147, 111, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .form-floating > label {
+            color: var(--asklepios-success);
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+
+        .btn-register {
+            background: linear-gradient(135deg, var(--asklepios-success), var(--asklepios-primary));
+            border: none;
+            border-radius: 16px;
+            padding: 1rem 2rem;
+            font-weight: 600;
+            font-size: 1.05rem;
+            color: white;
+            width: 100%;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+
+        .btn-register::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn-register:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(50, 147, 111, 0.4);
+        }
+
+        .btn-register:hover::before {
+            left: 100%;
+        }
+
+        .login-link {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+
+        .login-link a {
+            color: var(--asklepios-primary);
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            padding: 0.5rem 1rem;
+            border-radius: 12px;
+            display: inline-block;
+        }
+
+        .login-link a:hover {
+            background: rgba(46, 134, 171, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .alert {
+            border: none;
+            border-radius: 16px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid;
+            font-size: 0.9rem;
+        }
+
+        .alert-danger {
+            background: rgba(220, 53, 69, 0.1);
+            border-left-color: #dc3545;
+            color: #721c24;
+        }
+
+        .alert-success {
+            background: rgba(50, 147, 111, 0.1);
+            border-left-color: var(--asklepios-success);
+            color: var(--asklepios-success);
+        }
+
+        .form-text {
+            color: var(--asklepios-primary);
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .register-card {
+                padding: 2rem;
+                margin: 1rem;
+            }
+            
+            .brand-title {
+                font-size: 1.6rem;
+            }
+            
+            .brand-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+                gap: 0;
+            }
+        }
+
+        /* Loading state */
+        .btn-register.loading {
+            pointer-events: none;
+            opacity: 0.8;
+        }
+
+        .btn-register.loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            margin: -10px 0 0 -10px;
+            width: 20px;
+            height: 20px;
+            border: 2px solid transparent;
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .required {
+            color: #dc3545;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="register-container">
+        <div class="register-card">
+            <!-- Brand Logo -->
+            <div class="brand-logo">
+                <div class="brand-icon">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <div class="brand-title">ASKLEPIOS</div>
+                <div class="brand-subtitle">Medical Center</div>
+                <div class="register-subtitle">Rejestracja nowego pacjenta</div>
+            </div>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }}" role="alert">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Registration Form -->
+            <form method="POST" id="registerForm">
+                {{ form.hidden_tag() }}
+                
+                <!-- Name fields -->
+                <div class="form-row">
+                    <div class="form-floating">
+                        {{ form.imie(class="form-control", placeholder="Imię", id="floatingImie") }}
+                        {{ form.imie.label(for="floatingImie") }} <span class="required">*</span>
+                    </div>
+                    <div class="form-floating">
+                        {{ form.nazwisko(class="form-control", placeholder="Nazwisko", id="floatingNazwisko") }}
+                        {{ form.nazwisko.label(for="floatingNazwisko") }} <span class="required">*</span>
+                    </div>
+                </div>
+
+                <!-- PESEL and Birth Date -->
+                <div class="form-row">
+                    <div class="form-floating">
+                        {{ form.pesel(class="form-control", placeholder="PESEL", id="floatingPesel", maxlength="11") }}
+                        {{ form.pesel.label(for="floatingPesel") }} <span class="required">*</span>
+                        <div class="form-text">11 cyfr bez spacji</div>
+                    </div>
+                    <div class="form-floating">
+                        {{ form.data_urodzenia(class="form-control", placeholder="Data urodzenia", id="floatingData") }}
+                        {{ form.data_urodzenia.label(for="floatingData") }} <span class="required">*</span>
+                    </div>
+                </div>
+
+                <!-- Email and Phone -->
+                <div class="form-row">
+                    <div class="form-floating">
+                        {{ form.email(class="form-control", placeholder="Email", id="floatingEmail") }}
+                        {{ form.email.label(for="floatingEmail") }} <span class="required">*</span>
+                    </div>
+                    <div class="form-floating">
+                        {{ form.telefon(class="form-control", placeholder="Telefon", id="floatingTelefon") }}
+                        {{ form.telefon.label(for="floatingTelefon") }}
+                    </div>
+                </div>
+
+                <!-- Address -->
+                <div class="form-floating">
+                    {{ form.adres(class="form-control", placeholder="Adres", id="floatingAdres", rows="2") }}
+                    {{ form.adres.label(for="floatingAdres") }} <span class="required">*</span>
+                    <div class="form-text">Pełny adres z kodem pocztowym</div>
+                </div>
+
+                <!-- Password -->
+                <div class="form-floating">
+                    {{ form.haslo(class="form-control", placeholder="Hasło", id="floatingHaslo") }}
+                    {{ form.haslo.label(for="floatingHaslo") }} <span class="required">*</span>
+                    <div class="form-text">Minimum 6 znaków</div>
+                </div>
+
+                <button type="submit" class="btn btn-register" id="registerBtn">
+                    <i class="fas fa-user-plus me-2"></i>
+                    <span class="btn-text">Zarejestruj się</span>
+                </button>
+            </form>
+
+            <!-- Login Link -->
+            <div class="login-link">
+                <p class="mb-2">Masz już konto?</p>
+                <a href="{{ url_for('auth_bp.login') }}">
+                    <i class="fas fa-sign-in-alt me-2"></i>
+                    Zaloguj się
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('registerForm');
+            const registerBtn = document.getElementById('registerBtn');
+            const btnText = registerBtn.querySelector('.btn-text');
+
+            // PESEL validation
+            const peselInput = document.getElementById('floatingPesel');
+            peselInput.addEventListener('input', function() {
+                this.value = this.value.replace(/\D/g, ''); // Only numbers
+            });
+
+            // Phone validation
+            const phoneInput = document.getElementById('floatingTelefon');
+            phoneInput.addEventListener('input', function() {
+                this.value = this.value.replace(/[^\d\+\-\s]/g, ''); // Only numbers, +, -, space
+            });
+
+            // Form submission
+            form.addEventListener('submit', function(e) {
+                // Basic validation
+                const pesel = peselInput.value;
+                if (pesel.length !== 11) {
+                    e.preventDefault();
+                    alert('PESEL musi mieć dokładnie 11 cyfr');
+                    return;
+                }
+
+                const email = document.getElementById('floatingEmail').value;
+                if (!email.includes('@')) {
+                    e.preventDefault();
+                    alert('Proszę podać prawidłowy adres email');
+                    return;
+                }
+
+                const haslo = document.getElementById('floatingHaslo').value;
+                if (haslo.length < 6) {
+                    e.preventDefault();
+                    alert('Hasło musi mieć minimum 6 znaków');
+                    return;
+                }
+
+                // Show loading state
+                registerBtn.classList.add('loading');
+                btnText.textContent = 'Rejestrowanie...';
+                registerBtn.disabled = true;
+            });
+
+            // Auto-hide alerts after 5 seconds
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                setTimeout(function() {
+                    alert.style.animation = 'fadeOut 0.5s ease';
+                    setTimeout(function() {
+                        alert.remove();
+                    }, 500);
+                }, 5000);
+            });
+        });
+
+        // Add fade out animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeOut {
+                from { opacity: 1; transform: translateY(0); }
+                to { opacity: 0; transform: translateY(-20px); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

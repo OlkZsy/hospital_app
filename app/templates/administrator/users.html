@@ -1,38 +1,537 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
 <div class="container mt-4">
-    <h2>Lista użytkowników</h2>
-
-    <form method="get" class="mb-3">
-        <label for="rola">Filtruj według roli:</label>
-        <select name="rola" id="rola" class="form-select" onchange="this.form.submit()">
-            <option value="">Wszyscy</option>
-            <option value="lekarz" {% if rola == 'lekarz' %}selected{% endif %}>Lekarze</option>
-            <option value="recepcjonista" {% if rola == 'recepcjonista' %}selected{% endif %}>Recepcjoniści</option>
-            <option value="administrator" {% if rola == 'administrator' %}selected{% endif %}>Administratorzy</option>
-        </select>
-    </form>
-
-    <table class="table table-bordered">
-        <thead>
-            <tr>
-                <th>Imię i nazwisko</th>
-                <th>Email</th>
-                <th>Telefon</th>
-                <th>Rola</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for user in users %}
-            <tr>
-                <td>{{ user.imie }} {{ user.nazwisko }}</td>
-                <td>{{ user.email }}</td>
-                <td>{{ user.telefon }}</td>
-                <td>{{ user.__class__.__name__ }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Zarządzanie użytkownikami</h2>
+        <a href="{{ url_for('administrator_bp.register_user') }}" class="btn btn-success">
+            <i class="fas fa-plus"></i> Dodaj użytkownika
+        </a>
+    </div>
+    
+    <!-- Filtry wyszukiwania -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-search me-2"></i>Wyszukiwanie i filtry</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" id="searchForm">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="search" class="form-label">Szukaj po imieniu, nazwisku lub email</label>
+                        <input type="text" name="search" id="search" class="form-control" 
+                               placeholder="np. Jan Kowalski lub jan@example.com"
+                               value="{{ request.args.get('search', '') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="rola" class="form-label">Filtruj według roli</label>
+                        <select name="rola" id="rola" class="form-select">
+                            <option value="">Wszystkie role</option>
+                            <option value="administrator" {% if request.args.get('rola') == 'administrator' %}selected{% endif %}>Administratorzy</option>
+                            <option value="lekarz" {% if request.args.get('rola') == 'lekarz' %}selected{% endif %}>Lekarze</option>
+                            <option value="pacjent" {% if request.args.get('rola') == 'pacjent' %}selected{% endif %}>Pacjenci</option>
+                            <option value="recepcjonista" {% if request.args.get('rola') == 'recepcjonista' %}selected{% endif %}>Recepcjoniści</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="specjalizacja" class="form-label">Specjalizacja (lekarze)</label>
+                        <select name="specjalizacja" id="specjalizacja" class="form-select">
+                            <option value="">Wszystkie specjalizacje</option>
+                            <option value="Medycyna Ogólna" {% if request.args.get('specjalizacja') == 'Medycyna Ogólna' %}selected{% endif %}>Medycyna Ogólna</option>
+                            <option value="Kardiologia" {% if request.args.get('specjalizacja') == 'Kardiologia' %}selected{% endif %}>Kardiologia</option>
+                            <option value="Pediatria" {% if request.args.get('specjalizacja') == 'Pediatria' %}selected{% endif %}>Pediatria</option>
+                            <option value="Chirurgia" {% if request.args.get('specjalizacja') == 'Chirurgia' %}selected{% endif %}>Chirurgia</option>
+                            <option value="Neurologia" {% if request.args.get('specjalizacja') == 'Neurologia' %}selected{% endif %}>Neurologia</option>
+                            <option value="Dermatologia" {% if request.args.get('specjalizacja') == 'Dermatologia' %}selected{% endif %}>Dermatologia</option>
+                            <option value="Ginekologia" {% if request.args.get('specjalizacja') == 'Ginekologia' %}selected{% endif %}>Ginekologia</option>
+                            <option value="Ortopedia" {% if request.args.get('specjalizacja') == 'Ortopedia' %}selected{% endif %}>Ortopedia</option>
+                            <option value="Okulistyka" {% if request.args.get('specjalizacja') == 'Okulistyka' %}selected{% endif %}>Okulistyka</option>
+                            <option value="Psychiatria" {% if request.args.get('specjalizacja') == 'Psychiatria' %}selected{% endif %}>Psychiatria</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search"></i> Szukaj
+                            </button>
+                            <a href="{{ url_for('administrator_bp.users') }}" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-times"></i> Wyczyść
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Statystyki użytkowników -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3 id="totalUsers">{{ total_count }}</h3>
+                    <p class="mb-0">Wszystkich użytkowników</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3 id="doctorsCount">{{ doctors_count }}</h3>
+                    <p class="mb-0">Lekarzy</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h3 id="patientsCount">{{ patients_count }}</h3>
+                    <p class="mb-0">Pacjentów</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body text-center">
+                    <h3 id="staffCount">{{ staff_count }}</h3>
+                    <p class="mb-0">Personelu</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Wyniki wyszukiwania -->
+    {% if search_query %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>
+        Wyniki wyszukiwania dla: <strong>"{{ search_query }}"</strong>
+        {% if role_filter %} | Rola: <strong>{{ role_filter }}</strong>{% endif %}
+        {% if spec_filter %} | Specjalizacja: <strong>{{ spec_filter }}</strong>{% endif %}
+        <br><small>Znaleziono: {{ users|length }} użytkowników</small>
+    </div>
+    {% endif %}
+    
+    <!-- Lista użytkowników -->
+    {% if users %}
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-users me-2"></i>
+                Lista użytkowników
+                {% if users|length != total_count %}
+                    ({{ users|length }} z {{ total_count }})
+                {% endif %}
+            </h5>
+            <!-- <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-outline-success" onclick="printUsers()">
+                    <i class="fas fa-print"></i> Drukuj listę
+                </button>
+            </div> -->
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="usersTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>
+                                <button type="button" class="btn btn-link text-white p-0 fw-bold text-decoration-none" onclick="sortTable(0)">
+                                    Imię i nazwisko <i class="fas fa-sort"></i>
+                                </button>
+                            </th>
+                            <th>Email</th>
+                            <th>
+                                <button type="button" class="btn btn-link text-white p-0 fw-bold text-decoration-none" onclick="sortTable(2)">
+                                    Rola <i class="fas fa-sort"></i>
+                                </button>
+                            </th>
+                            <th>Specjalizacja/Szczegóły</th>
+                            <th>Telefon</th>
+                            <th>Status</th>
+                            <th>Akcje</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr data-role="{{ user.role }}" data-user-id="{{ user.id }}">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="user-avatar me-3">
+                                        {% if user.role == 'administrator' %}
+                                        <i class="fas fa-user-shield text-primary"></i>
+                                        {% elif user.role == 'lekarz' %}
+                                        <i class="fas fa-user-md text-success"></i>
+                                        {% elif user.role == 'recepcjonista' %}
+                                        <i class="fas fa-user-tie text-warning"></i>
+                                        {% else %}
+                                        <i class="fas fa-user text-info"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <strong>{{ user.imie }} {{ user.nazwisko }}</strong>
+                                        {% if user.role == 'lekarz' %}
+                                        <br><small class="text-muted">Dr {{ user.nazwisko }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="text-truncate d-inline-block" style="max-width: 200px;" title="{{ user.email }}">
+                                    {{ user.email }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if user.role == 'administrator' %}
+                                <span class="badge bg-primary">Administrator</span>
+                                {% elif user.role == 'lekarz' %}
+                                <span class="badge bg-success">Lekarz</span>
+                                {% elif user.role == 'recepcjonista' %}
+                                <span class="badge bg-warning">Recepcjonista</span>
+                                {% else %}
+                                <span class="badge bg-info">Pacjent</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.role == 'lekarz' %}
+                                    <div>
+                                        <strong>{{ user.specjalizacja or 'Medycyna Ogólna' }}</strong>
+                                        {% if user.numer_licencji %}
+                                        <br><small class="text-muted">Lic: {{ user.numer_licencji }}</small>
+                                        {% endif %}
+                                    </div>
+                                {% elif user.role == 'pacjent' %}
+                                    <div>
+                                        {% if user.pesel %}
+                                        <strong>PESEL:</strong> {{ user.pesel }}<br>
+                                        {% endif %}
+                                        {% if user.data_urodzenia %}
+                                        <small class="text-muted">Ur: {{ user.data_urodzenia.strftime('%d.%m.%Y') }}</small>
+                                        {% endif %}
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.telefon %}
+                                <a href="tel:{{ user.telefon }}" class="text-decoration-none">
+                                    <i class="fas fa-phone me-1"></i>{{ user.telefon }}
+                                </a>
+                                {% else %}
+                                <span class="text-muted">Brak</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.role == 'lekarz' %}
+                                    <span class="badge bg-success-soft text-success">Aktywny</span>
+                                {% elif user.role == 'pacjent' %}
+                                    <span class="badge bg-info-soft text-info">Pacjent</span>
+                                {% else %}
+                                    <span class="badge bg-primary-soft text-primary">Personel</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" 
+                                            title="Zobacz szczegóły" 
+                                            onclick="showUserInfo(this, '{{ user.imie }}', '{{ user.nazwisko }}', '{{ user.email }}', '{{ user.telefon or "Brak" }}', '{{ user.role }}')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info text-center">
+        <i class="fas fa-users fa-3x mb-3"></i>
+        <h4>Brak użytkowników</h4>
+        {% if search_query %}
+        <p>Nie znaleziono użytkowników pasujących do kryteriów wyszukiwania.</p>
+        <a href="{{ url_for('administrator_bp.users') }}" class="btn btn-primary">Pokaż wszystkich użytkowników</a>
+        {% else %}
+        <p>Nie ma jeszcze żadnych zarejestrowanych użytkowników.</p>
+        <a href="{{ url_for('administrator_bp.register_user') }}" class="btn btn-primary">Dodaj pierwszego użytkownika</a>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    <div class="mt-4">
+        <a href="{{ url_for('administrator_bp.dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Powrót do panelu
+        </a>
+    </div>
 </div>
+
+<!-- Modal szczegółów użytkownika -->
+<div class="modal fade" id="userDetailsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Szczegóły użytkownika</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="userDetailsContent"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zamknij</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+// Sortowanie tabeli
+function sortTable(columnIndex) {
+    var table = document.getElementById('usersTable');
+    var tbody = table.getElementsByTagName('tbody')[0];
+    var rows = Array.from(tbody.getElementsByTagName('tr'));
+    
+    var isAscending = table.getAttribute('data-sort-order') !== 'asc';
+    
+    rows.sort(function(a, b) {
+        var aText = a.getElementsByTagName('td')[columnIndex].textContent.trim();
+        var bText = b.getElementsByTagName('td')[columnIndex].textContent.trim();
+        
+        if (isAscending) {
+            return aText.localeCompare(bText);
+        } else {
+            return bText.localeCompare(aText);
+        }
+    });
+    
+    // Usuwamy wszystkie wiersze i dodajemy posortowane
+    tbody.innerHTML = '';
+    rows.forEach(function(row) {
+        tbody.appendChild(row);
+    });
+    
+    table.setAttribute('data-sort-order', isAscending ? 'asc' : 'desc');
+    
+    // Aktualizujemy ikony sortowania
+    var sortIcons = table.querySelectorAll('.fa-sort, .fa-sort-up, .fa-sort-down');
+    sortIcons.forEach(function(icon) {
+        icon.className = 'fas fa-sort';
+    });
+    
+    var currentIcon = table.getElementsByTagName('th')[columnIndex].querySelector('i');
+    currentIcon.className = 'fas fa-sort-' + (isAscending ? 'up' : 'down');
+}
+
+// Pokazywanie szczegółów użytkownika
+function showUserInfo(button, imie, nazwisko, email, telefon, rola) {
+    var modal = new bootstrap.Modal(document.getElementById('userDetailsModal'));
+    var content = document.getElementById('userDetailsContent');
+    
+    var roleText = '';
+    var roleIcon = '';
+    switch(rola) {
+        case 'administrator':
+            roleText = 'Administrator';
+            roleIcon = '<i class="fas fa-user-shield text-primary me-2"></i>';
+            break;
+        case 'lekarz':
+            roleText = 'Lekarz';
+            roleIcon = '<i class="fas fa-user-md text-success me-2"></i>';
+            break;
+        case 'recepcjonista':
+            roleText = 'Recepcjonista';
+            roleIcon = '<i class="fas fa-user-tie text-warning me-2"></i>';
+            break;
+        case 'pacjent':
+            roleText = 'Pacjent';
+            roleIcon = '<i class="fas fa-user text-info me-2"></i>';
+            break;
+    }
+    
+    content.innerHTML = '<div class="card border-0">' +
+                       '<div class="card-body">' +
+                       '<div class="text-center mb-3">' +
+                       '<div class="user-avatar-large mb-2">' + roleIcon.replace('me-2', '') + '</div>' +
+                       '<h5>' + imie + ' ' + nazwisko + '</h5>' +
+                       '<span class="badge bg-primary">' + roleText + '</span>' +
+                       '</div>' +
+                       '<hr>' +
+                       '<div class="row">' +
+                       '<div class="col-4"><strong>Email:</strong></div>' +
+                       '<div class="col-8">' + email + '</div>' +
+                       '</div>' +
+                       '<div class="row mt-2">' +
+                       '<div class="col-4"><strong>Telefon:</strong></div>' +
+                       '<div class="col-8">' + telefon + '</div>' +
+                       '</div>' +
+                       '</div>' +
+                       '</div>';
+    
+    modal.show();
+}
+
+// Drukowanie listy użytkowników ||||| Nie działa poprawnie, przycisk jest wyłączony powyżej!!!!!
+function printUsers() {
+    window.print();
+}
+
+// Live search
+document.getElementById('search').addEventListener('input', function() {
+    var searchTerm = this.value.toLowerCase();
+    var rows = document.querySelectorAll('#usersTable tbody tr');
+    
+    rows.forEach(function(row) {
+        var text = row.textContent.toLowerCase();
+        row.style.display = text.includes(searchTerm) ? '' : 'none';
+    });
+});
+
+// Auto-submit formularza przy zmianie filtrów
+document.getElementById('rola').addEventListener('change', function() {
+    document.getElementById('searchForm').submit();
+});
+
+document.getElementById('specjalizacja').addEventListener('change', function() {
+    document.getElementById('searchForm').submit();
+});
+</script>
+
+<style>
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.text-truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.badge.bg-success-soft {
+    background-color: rgba(25, 135, 84, 0.1) !important;
+    border: 1px solid rgba(25, 135, 84, 0.2);
+}
+
+.badge.bg-info-soft {
+    background-color: rgba(13, 110, 253, 0.1) !important;
+    border: 1px solid rgba(13, 110, 253, 0.2);
+}
+
+.badge.bg-primary-soft {
+    background-color: rgba(13, 110, 253, 0.1) !important;
+    border: 1px solid rgba(13, 110, 253, 0.2);
+}
+
+.btn-group .btn {
+    padding: 0.25rem 0.5rem;
+}
+
+/* Sortowanie */
+th button {
+    border: none !important;
+    background: none !important;
+}
+
+th button:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Responsywność */
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+    
+    .btn-group .btn {
+        padding: 0.125rem 0.25rem;
+        font-size: 0.75rem;
+    }
+    
+    .user-avatar {
+        width: 30px;
+        height: 30px;
+        font-size: 1rem;
+    }
+}
+
+/* Стили для печати */
+@media print {
+    /* Скрываем всё кроме таблицы */
+    body * {
+        visibility: hidden;
+    }
+    
+    #usersTable, #usersTable * {
+        visibility: visible;
+    }
+    
+    #usersTable {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100% !important;
+    }
+    
+    /* Скрываем заголовок страницы */
+    .container h2,
+    .alert,
+    .card-header,
+    .btn,
+    .card:not(:has(#usersTable)),
+    .row:not(:has(#usersTable)) {
+        display: none !important;
+    }
+    
+    /* Стили для таблицы при печати */
+    .table {
+        font-size: 10px !important;
+        border-collapse: collapse !important;
+    }
+    
+    .table th,
+    .table td {
+        border: 1px solid #000 !important;
+        padding: 4px !important;
+    }
+    
+    .table thead th {
+        background-color: #f0f0f0 !important;
+        color: #000 !important;
+    }
+    
+    .badge {
+        border: 1px solid #000;
+        padding: 2px 4px;
+        border-radius: 3px;
+    }
+}
+
+/* Большой аватар в модале */
+.user-avatar-large {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    margin: 0 auto;
+}
+</style>
 {% endblock %}

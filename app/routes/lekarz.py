@@ -408,3 +408,48 @@ def api_patients():
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+
+
+@lekarz_bp.route('/harmonogram', methods=['GET', 'POST'])
+@login_required
+def harmonogram():
+    if not is_lekarz():
+        flash('Brak dostępu. Ta strona jest tylko dla lekarzy.', 'danger')
+        return redirect(url_for('auth_bp.login'))
+    
+    if request.method == 'POST':
+        try:
+            # Usuwamy stary harmonogram
+            HarmonogramLekarza.query.filter_by(id_lekarza=current_user.id_lekarza).delete()
+            
+            # Dodajemy nowy harmonogram
+            dni_tygodnia = ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela']
+            
+            for dzien in dni_tygodnia:
+                if request.form.get(dzien.lower() + '_aktywny'):
+                    godzina_start = request.form.get(dzien.lower() + '_start')
+                    godzina_koniec = request.form.get(dzien.lower() + '_koniec')
+                    
+                    if godzina_start and godzina_koniec:
+                        harmonogram = HarmonogramLekarza(
+                            id_lekarza=current_user.id_lekarza,
+                            dzien_tygodnia=dzien,
+                            godzina_start=datetime.strptime(godzina_start, '%H:%M').time(),
+                            godzina_koniec=datetime.strptime(godzina_koniec, '%H:%M').time()
+                        )
+                        db.session.add(harmonogram)
+            
+            db.session.commit()
+            flash('Harmonogram został zapisany pomyślnie!', 'success')
+            return redirect(url_for('lekarz_bp.harmonogram'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Błąd przy zapisywaniu harmonogramu: {str(e)}', 'danger')
+    
+    # Pobieramy aktualny harmonogram
+    harmonogram = HarmonogramLekarza.query.filter_by(id_lekarza=current_user.id_lekarza).all()
+    harmonogram_dict = {h.dzien_tygodnia: h for h in harmonogram}
+    
+    return render_template('lekarz/harmonogram.html', harmonogram=harmonogram_dict)

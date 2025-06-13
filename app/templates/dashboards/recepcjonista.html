@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<div class="container mt-4">
+    <h2 class="mb-4">Panel recepcjonisty</h2>
+    <p class="lead">Witaj, {{ user.imie }} {{ user.nazwisko }}!</p>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card text-white bg-primary mb-3">
+                <div class="card-header">Pacjenci</div>
+                <div class="card-body">
+                    <p class="card-text">Zarządzaj pacjentami i ich danymi.</p>
+                    <a href="{{ url_for('recepcjonista_bp.pacjenci') }}" class="btn btn-light">Zarządzaj pacjentami</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card text-white bg-success mb-3">
+                <div class="card-header">Rejestracja pacjenta</div>
+                <div class="card-body">
+                    <p class="card-text">Zarejestruj nowego pacjenta.</p>
+                    <a href="{{ url_for('recepcjonista_bp.register_pacjent') }}" class="btn btn-light">Nowy pacjent</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card text-white bg-info mb-3">
+                <div class="card-header">Lekarze</div>
+                <div class="card-body">
+                    <p class="card-text">Zobacz kalendarze lekarzy.</p>
+                    <a href="{{ url_for('recepcjonista_bp.lekarze') }}" class="btn btn-light">Kalendarze lekarzy</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card text-white bg-warning mb-3">
+                <div class="card-header">Dzisiejsze wizyty</div>
+                <div class="card-body">
+                    <p class="card-text">Zobacz wizyty na dziś.</p>
+                    <a href="{{ url_for('recepcjonista_bp.dzisiejsze_wizyty') }}" class="btn btn-light">Dzisiejsze wizyty</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card text-white bg-info mb-3">
+                <div class="card-header">Zapisz pacjenta</div>
+                <div class="card-body">
+                    <p class="card-text">Umów pacjenta na wizytę.</p>
+                    <a href="{{ url_for('recepcjonista_bp.zapisz_pacjenta') }}" class="btn btn-light">Zapisz na wizytę</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

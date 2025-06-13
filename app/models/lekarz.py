@@ -14,7 +14,7 @@ class Lekarz(UserMixin, db.Model):
     haslo_hash = db.Column(db.String(255), nullable=False)
 
     def get_id(self):
-        return str(self.id_lekarza)
+        return f"lekarz_{self.id_lekarza}"  # lekarz_1, lekarz_2, etc.
     
     wizyty = db.relationship('Wizyta', backref='lekarz', lazy=True)
     recepty = db.relationship('Recepta', backref='lekarz', lazy=True)

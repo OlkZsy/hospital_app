@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Zarządzanie pacjentami</h2>
+        <a href="{{ url_for('recepcjonista_bp.register_pacjent') }}" class="btn btn-success">
+            <i class="fas fa-plus"></i> Nowy pacjent
+        </a>
+    </div>
+    
+    <!-- Wyszukiwanie -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-8">
+                    <input type="text" name="search" class="form-control" placeholder="Szukaj po nazwisku, imieniu lub PESEL..." value="{{ search }}">
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary me-2">Szukaj</button>
+                    <a href="{{ url_for('recepcjonista_bp.pacjenci') }}" class="btn btn-outline-secondary">Wyczyść</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Lista pacjentów -->
+    {% if pacjenci %}
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Imię i nazwisko</th>
+                            <th>PESEL</th>
+                            <th>Email</th>
+                            <th>Telefon</th>
+                            <th>Akcje</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pacjent in pacjenci %}
+                        <tr>
+                            <td><strong>{{ pacjent.imie }} {{ pacjent.nazwisko }}</strong></td>
+                            <td>{{ pacjent.pesel }}</td>
+                            <td>{{ pacjent.email }}</td>
+                            <td>{{ pacjent.telefon or 'Brak' }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('recepcjonista_bp.pacjent_details', id_pacjenta=pacjent.id_pacjenta) }}" class="btn btn-outline-primary">Szczegóły</a>
+                                    <a href="{{ url_for('recepcjonista_bp.edit_pacjent', id_pacjenta=pacjent.id_pacjenta) }}" class="btn btn-outline-warning">Edytuj</a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <h4>Brak pacjentów</h4>
+        <p>{% if search %}Brak wyników dla "{{ search }}"{% else %}Nie ma jeszcze żadnych pacjentów{% endif %}</p>
+    </div>
+    {% endif %}
+    
+    <div class="mt-4">
+        <a href="{{ url_for('recepcjonista_bp.dashboard') }}" class="btn btn-secondary">Powrót do panelu</a>
+    </div>
+</div>
+{% endblock %}

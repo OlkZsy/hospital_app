@@ -1,0 +1,409 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>Kalendarz: Dr {{ lekarz.imie }} {{ lekarz.nazwisko }}</h2>
+            <p class="text-muted">{{ lekarz.specjalizacja or 'Medycyna ogólna' }}</p>
+        </div>
+        <a href="{{ url_for('recepcjonista_bp.lekarze') }}" class="btn btn-secondary">Powrót</a>
+    </div>
+    
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <div class="alert alert-info">
+                <div class="d-flex gap-4 align-items-center">
+                    <strong>Legenda:</strong>
+                    <span><span class="badge bg-success me-1">■</span> Dostępne terminy</span>
+                    <span><span class="badge bg-danger me-1">■</span> Zajęte terminy</span>
+                    <span><span class="badge bg-secondary me-1">■</span> Brak harmonogramu</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="d-flex align-items-center gap-2">
+                <button onclick="doctorCalendar.previousMonth()" class="btn btn-outline-primary">&lt;</button>
+                <h5 class="mb-0 flex-grow-1 text-center" id="monthYear">Loading...</h5>
+                <button onclick="doctorCalendar.nextMonth()" class="btn btn-outline-primary">&gt;</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
+            <div class="calendar-grid">
+                <div class="d-flex text-center fw-bold border-bottom pb-2 mb-2">
+                    <div style="flex: 1">Pon</div>
+                    <div style="flex: 1">Wt</div>
+                    <div style="flex: 1">Śr</div>
+                    <div style="flex: 1">Czw</div>
+                    <div style="flex: 1">Pt</div>
+                    <div style="flex: 1">Sob</div>
+                    <div style="flex: 1">Nie</div>
+                </div>
+                <div id="calendarDays"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal szczegółów dnia -->
+<div class="modal fade" id="dayDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="dayDetailsModalLabel">Szczegóły dnia</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="dayDetailsContent"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+class DoctorCalendar {
+    constructor() {
+        this.currentDate = new Date();
+        this.monthSchedule = {};
+        this.doctorId = {{ lekarz.id_lekarza }};
+        this.monthNames = [
+            'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
+            'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'
+        ];
+        this.init();
+    }
+    
+    init() {
+        this.updateMonthDisplay();
+        this.loadMonthSchedule();
+    }
+    
+    updateMonthDisplay() {
+        var monthYearEl = document.getElementById('monthYear');
+        monthYearEl.textContent = this.monthNames[this.currentDate.getMonth()] + ' ' + this.currentDate.getFullYear();
+        this.renderCalendar();
+    }
+    
+    renderCalendar() {
+        var calendarDays = document.getElementById('calendarDays');
+        calendarDays.innerHTML = '';
+        
+        var year = this.currentDate.getFullYear();
+        var month = this.currentDate.getMonth();
+        var firstDay = new Date(year, month, 1);
+        var lastDay = new Date(year, month + 1, 0);
+        var startDay = (firstDay.getDay() + 6) % 7;
+        
+        var calendarHTML = '';
+        var totalCells = 42;
+        
+        for (var cellIndex = 0; cellIndex < totalCells; cellIndex++) {
+            if (cellIndex % 7 === 0) {
+                if (cellIndex > 0) calendarHTML += '</div>';
+                calendarHTML += '<div class="calendar-week" style="display: flex; margin-bottom: 2px;">';
+            }
+            
+            var dayOfMonth = cellIndex - startDay + 1;
+            var cellClass = 'calendar-day';
+            var content = '';
+            
+            if (cellIndex < startDay || dayOfMonth > lastDay.getDate()) {
+                cellClass += ' other-month';
+            } else {
+                var cellDate = new Date(year, month, dayOfMonth);
+                var dateStr = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(dayOfMonth).padStart(2, '0');
+                var isToday = dateStr === new Date().toISOString().split('T')[0];
+                var isPast = cellDate < new Date().setHours(0,0,0,0);
+                
+                var scheduleInfo = this.getScheduleInfo(dateStr, isPast);
+                cellClass += ' current-month ' + scheduleInfo.cssClass;
+                if (isToday) cellClass += ' today';
+                
+                var clickHandler = scheduleInfo.hasSchedule ? 'onclick="doctorCalendar.showDayDetails(\'' + dateStr + '\')"' : '';
+                
+                content = '<div class="day-number">' + dayOfMonth + '</div><div class="day-schedule">' + scheduleInfo.text + '</div>';
+                
+                calendarHTML += '<div class="calendar-cell" style="flex: 1; margin: 1px;" ' + clickHandler + '>' +
+                               '<div class="' + cellClass + '">' + content + '</div></div>';
+            }
+            
+            if (cellIndex < startDay || dayOfMonth > lastDay.getDate()) {
+                calendarHTML += '<div class="calendar-cell" style="flex: 1; margin: 1px;"><div class="' + cellClass + '"></div></div>';
+            }
+        }
+        
+        calendarHTML += '</div>';
+        calendarDays.innerHTML = calendarHTML;
+    }
+    
+    getScheduleInfo(dateStr, isPast) {
+        var schedule = this.monthSchedule[dateStr];
+        
+        if (!schedule) {
+            return { cssClass: 'no-schedule', text: 'Brak harmonogramu', hasSchedule: false };
+        }
+        
+        var totalAppointments = schedule.slots.filter(function(s) { return !s.available; }).length;
+        var totalSlots = schedule.slots.length;
+        
+        if (isPast) {
+            return { 
+                cssClass: 'past-day', 
+                text: totalAppointments > 0 ? 'Wizyt: ' + totalAppointments : 'Brak wizyt', 
+                hasSchedule: true 
+            };
+        }
+        
+        if (totalAppointments === 0) {
+            return { cssClass: 'all-available', text: 'Dostępne', hasSchedule: true };
+        } else if (totalAppointments === totalSlots) {
+            return { cssClass: 'all-occupied', text: 'Zajęte', hasSchedule: true };
+        } else {
+            return { cssClass: 'mixed-schedule', text: 'Zajęte: ' + totalAppointments + '/' + totalSlots, hasSchedule: true };
+        }
+    }
+    
+    loadMonthSchedule() {
+        var self = this;
+        this.monthSchedule = {};
+        
+        var year = this.currentDate.getFullYear();
+        var month = this.currentDate.getMonth();
+        var startDate = new Date(year, month, 1);
+        var endDate = new Date(year, month + 1, 0);
+        
+        var promises = [];
+        
+        for (var d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+            var dateStr = d.toISOString().split('T')[0];
+            promises.push(this.loadDaySchedule(dateStr));
+        }
+        
+        Promise.all(promises).then(function() {
+            self.renderCalendar();
+        });
+    }
+    
+    loadDaySchedule(dateStr) {
+        var self = this;
+        return fetch('/recepcjonista/api/lekarz/' + this.doctorId + '/schedule?date=' + dateStr)
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                if (data.slots && data.slots.length > 0) {
+                    self.monthSchedule[dateStr] = data;
+                }
+            })
+            .catch(function(error) {
+                console.error('Error loading schedule for ' + dateStr + ':', error);
+            });
+    }
+    
+    showDayDetails(dateStr) {
+        var self = this;
+        var modal = new bootstrap.Modal(document.getElementById('dayDetailsModal'));
+        var modalTitle = document.getElementById('dayDetailsModalLabel');
+        var modalContent = document.getElementById('dayDetailsContent');
+        
+        modalTitle.textContent = 'Wizyty dnia ' + this.formatPolishDate(dateStr);
+        modalContent.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
+        
+        modal.show();
+        
+        var schedule = this.monthSchedule[dateStr];
+        if (schedule && schedule.slots) {
+            this.renderDayDetails(schedule.slots, dateStr, modalContent);
+        } else {
+            modalContent.innerHTML = '<div class="alert alert-info">Brak harmonogramu na ten dzień.</div>';
+        }
+    }
+    
+    renderDayDetails(slots, dateStr, container) {
+        var appointments = slots.filter(function(slot) { return !slot.available; });
+        var availableSlots = slots.filter(function(slot) { return slot.available; });
+        
+        var html = '';
+        
+        if (appointments.length > 0) {
+            html += '<div class="mb-4">';
+            html += '<h6><i class="fas fa-calendar-check text-success"></i> Wizyty:</h6>';
+            html += '<div class="list-group">';
+            
+            appointments.sort(function(a, b) {
+                return a.time.localeCompare(b.time);
+            });
+            
+            appointments.forEach(function(appointment) {
+                html += '<div class="list-group-item d-flex justify-content-between align-items-center">' +
+                       '<div>' +
+                       '<strong>' + appointment.time + '</strong>' +
+                       '<br><small>' + appointment.patient + '</small>' +
+                       '</div>' +
+                       '</div>';
+            });
+            
+            html += '</div></div>';
+        }
+        
+        if (availableSlots.length > 0) {
+            var now = new Date();
+            var currentTime = now.getTime();
+            var bufferMinutes = 15;
+            
+            var futureSlots = availableSlots.filter(function(slot) {
+                var slotDateTime = new Date(slot.datetime);
+                return slotDateTime.getTime() > (currentTime + bufferMinutes * 60 * 1000);
+            });
+            
+            if (futureSlots.length > 0) {
+                html += '<div class="mb-3">';
+                html += '<h6><i class="fas fa-clock text-info"></i> Dostępne terminy:</h6>';
+                html += '<div class="row g-2">';
+                
+                futureSlots.forEach(function(slot) {
+                    html += '<div class="col-md-3 col-sm-4 col-6 mb-2">' +
+                           '<div class="badge bg-success w-100 p-2">' +
+                           '<div class="fw-bold">' + slot.time + '</div>' +
+                           '<small>Dostępne</small>' +
+                           '</div>' +
+                           '</div>';
+                });
+                
+                html += '</div></div>';
+            }
+        }
+        
+        if (appointments.length === 0 && availableSlots.length === 0) {
+            html = '<div class="alert alert-info text-center">' +
+                   '<h6>Brak wizyt</h6>' +
+                   '<p class="mb-0">Nie ma żadnych wizyt na ten dzień.</p>' +
+                   '</div>';
+        }
+        
+        container.innerHTML = html;
+    }
+    
+    previousMonth() {
+        this.currentDate.setMonth(this.currentDate.getMonth() - 1);
+        this.updateMonthDisplay();
+        this.loadMonthSchedule();
+    }
+    
+    nextMonth() {
+        this.currentDate.setMonth(this.currentDate.getMonth() + 1);
+        this.updateMonthDisplay();
+        this.loadMonthSchedule();
+    }
+    
+    formatPolishDate(dateStr) {
+        var months = [
+            'stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca',
+            'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'
+        ];
+        
+        var date = new Date(dateStr);
+        var day = date.getDate();
+        var month = months[date.getMonth()];
+        var year = date.getFullYear();
+        
+        return day + ' ' + month + ' ' + year;
+    }
+}
+
+var doctorCalendar;
+document.addEventListener('DOMContentLoaded', function() {
+    doctorCalendar = new DoctorCalendar();
+});
+</script>
+
+<style>
+.calendar-week {
+    display: flex !important;
+    width: 100%;
+}
+
+.calendar-cell {
+    flex: 1 !important;
+    min-width: 0;
+    max-width: 14.285714%;
+}
+
+.calendar-day {
+    min-height: 100px;
+    border: 1px solid #dee2e6;
+    padding: 8px;
+    border-radius: 5px;
+    transition: all 0.2s;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.calendar-day.current-month {
+    background-color: #fff;
+}
+
+.calendar-day.other-month {
+    background-color: #f8f9fa;
+}
+
+.calendar-day.no-schedule {
+    background-color: #f8f9fa;
+    color: #6c757d;
+}
+
+.calendar-day.all-available {
+    background-color: #d4edda;
+    border-color: #28a745;
+    cursor: pointer;
+}
+
+.calendar-day.all-occupied {
+    background-color: #f8d7da;
+    border-color: #dc3545;
+    cursor: pointer;
+}
+
+.calendar-day.mixed-schedule {
+    background-color: #fff3cd;
+    border-color: #ffc107;
+    cursor: pointer;
+}
+
+.calendar-day.past-day {
+    background-color: #e9ecef;
+    border-color: #6c757d;
+    cursor: pointer;
+    color: #495057;
+}
+
+.calendar-day.today {
+    border: 2px solid #007bff;
+    font-weight: bold;
+}
+
+.calendar-day:hover.current-month {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.day-number {
+    font-weight: bold;
+    font-size: 16px;
+    margin-bottom: 5px;
+}
+
+.day-schedule {
+    font-size: 12px;
+    line-height: 1.2;
+}
+</style>
+{% endblock %}

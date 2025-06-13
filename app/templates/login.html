@@ -2,44 +2,363 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <title>Logowanie</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-    <div class="container mt-5">
-        <div class="row justify-content-center">
-            <div class="col-md-6">
-                <h3 class="mb-4 text-center">Logowanie</h3>
-                <form method="POST">
-                    {{ form.hidden_tag() }}
-                    <div class="mb-3">
-                        {{ form.email.label(class="form-label") }}
-                        {{ form.email(class="form-control") }}
-                    </div>
-                    <div class="mb-3">
-                        {{ form.password.label(class="form-label") }}
-                        {{ form.password(class="form-control") }}
-                    </div>
-                    
-                    <button type="submit" class="btn btn-primary w-100">Zaloguj się</button>
-                </form>
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                  {% if messages %}
-                  
-                    <div class="mt-3">
-                      {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">{{ message }}</div>
-                      {% endfor %}
-                    </div>
-                    
-                  {% endif %}
-                {% endwith %}
-            </div>
-            <p>Nie masz konta? <a href="{{ url_for('auth_bp.register') }}">Zarejestruj się</a></p>
-        </div>
-        
-    </div>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logowanie - ASKLEPIOS Medical Center</title>
     
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:wght@300;400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --asklepios-primary: #2E86AB;
+            --asklepios-secondary: #A23B72;
+            --asklepios-accent: #F18F01;
+            --asklepios-success: #32936F;
+            --asklepios-light: #F8FFFE;
+            --asklepios-dark: #0A1128;
+        }
 
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #2E86AB 0%, #A23B72 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Animated background */
+        body::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="medical" patternUnits="userSpaceOnUse" width="20" height="20"><circle cx="10" cy="10" r="1" fill="rgba(255,255,255,0.05)"/></pattern></defs><rect width="100" height="100" fill="url(%23medical)"/></svg>') repeat;
+            animation: float 20s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(1deg); }
+        }
+
+        .login-container {
+            max-width: 420px;
+            width: 100%;
+            margin: 0 20px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .login-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 3rem;
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.3),
+                0 0 0 1px rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .login-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 
+                0 30px 80px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(255, 255, 255, 0.3);
+        }
+
+        .brand-logo {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .brand-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--asklepios-primary), var(--asklepios-secondary));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            color: white;
+            font-size: 2rem;
+            box-shadow: 0 10px 30px rgba(46, 134, 171, 0.3);
+            animation: pulse 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
+
+        .brand-title {
+            font-family: 'Merriweather', serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--asklepios-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .brand-subtitle {
+            color: var(--asklepios-primary);
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .form-floating {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-control {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid rgba(46, 134, 171, 0.2);
+            border-radius: 16px;
+            padding: 1rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            height: auto;
+        }
+
+        .form-control:focus {
+            background: white;
+            border-color: var(--asklepios-primary);
+            box-shadow: 0 0 0 4px rgba(46, 134, 171, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .form-floating > label {
+            color: var(--asklepios-primary);
+            font-weight: 500;
+        }
+
+        .btn-login {
+            background: linear-gradient(135deg, var(--asklepios-primary), var(--asklepios-secondary));
+            border: none;
+            border-radius: 16px;
+            padding: 1rem 2rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: white;
+            width: 100%;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-login::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(46, 134, 171, 0.4);
+        }
+
+        .btn-login:hover::before {
+            left: 100%;
+        }
+
+        .register-link {
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        .register-link a {
+            color: var(--asklepios-primary);
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            display: inline-block;
+            border: 2px solid var(--asklepios-primary);
+        }
+
+        .register-link a:hover {
+            background: var(--asklepios-primary);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .alert {
+            border: none;
+            border-radius: 16px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid;
+        }
+
+        .alert-danger {
+            background: rgba(220, 53, 69, 0.1);
+            border-left-color: #dc3545;
+            color: #721c24;
+        }
+
+        .alert-success {
+            background: rgba(50, 147, 111, 0.1);
+            border-left-color: var(--asklepios-success);
+            color: var(--asklepios-success);
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .login-card {
+                padding: 2rem;
+                margin: 1rem;
+            }
+            
+            .brand-title {
+                font-size: 1.75rem;
+            }
+            
+            .brand-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+            }
+        }
+
+        /* Loading state */
+        .btn-login.loading {
+            pointer-events: none;
+            opacity: 0.8;
+        }
+
+        .btn-login.loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            margin: -10px 0 0 -10px;
+            width: 20px;
+            height: 20px;
+            border: 2px solid transparent;
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <!-- Brand Logo -->
+            <div class="brand-logo">
+                <div class="brand-icon">
+                    <i class="fas fa-staff-snake"></i>
+                </div>
+                <div class="brand-title">ASKLEPIOS</div>
+                <div class="brand-subtitle">Medical Center</div>
+            </div>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }}" role="alert">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Login Form -->
+            <form method="POST" id="loginForm">
+                {{ form.hidden_tag() }}
+                
+                <div class="form-floating">
+                    {{ form.email(class="form-control", placeholder="Email", id="floatingEmail") }}
+                    {{ form.email.label(for="floatingEmail") }}
+                </div>
+
+                <div class="form-floating">
+                    {{ form.password(class="form-control", placeholder="Hasło", id="floatingPassword") }}
+                    {{ form.password.label(for="floatingPassword") }}
+                </div>
+
+                <button type="submit" class="btn btn-login" id="loginBtn">
+                    <i class="fas fa-sign-in-alt me-2"></i>
+                    <span class="btn-text">Zaloguj się</span>
+                </button>
+            </form>
+
+            <!-- Register Link -->
+            <div class="register-link">
+                <a href="{{ url_for('auth_bp.register') }}">
+                    <i class="fas fa-user-plus me-2"></i>
+                    Zarejestruj się jako pacjent
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('loginForm');
+            const loginBtn = document.getElementById('loginBtn');
+            const btnText = loginBtn.querySelector('.btn-text');
+
+            form.addEventListener('submit', function() {
+                loginBtn.classList.add('loading');
+                btnText.textContent = 'Logowanie...';
+                loginBtn.disabled = true;
+            });
+
+            // Auto-hide alerts after 5 seconds
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                setTimeout(function() {
+                    alert.style.animation = 'fadeOut 0.5s ease';
+                    setTimeout(function() {
+                        alert.remove();
+                    }, 500);
+                }, 5000);
+            });
+        });
+
+        // Add fade out animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeOut {
+                from { opacity: 1; transform: translateY(0); }
+                to { opacity: 0; transform: translateY(-20px); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
 </body>
 </html>

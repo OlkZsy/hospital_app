@@ -8,12 +8,12 @@
     <div class="row">
         <div class="col-md-4">
             <div class="card text-white bg-primary mb-3">
-                <div class="card-header">Moje wizyty</div>
-                <div class="card-body">
-                    <p class="card-text">Zobacz swoje nadchodzące i przeszłe wizyty.</p>
-                    <a href="{{ url_for('lekarz_bp.wizyty') }}" class="btn btn-light">Przeglądaj wizyty</a>
-                </div>
+            <div class="card-header">Moje wizyty</div>
+            <div class="card-body">
+                <p class="card-text">Zobacz swoje nadchodzące i przeszłe wizyty.</p>
+                <a href="{{ url_for('lekarz_bp.wizyty') }}" class="btn btn-light">Przeglądaj wizyty</a>
             </div>
+        </div>
         </div>
 
         <div class="col-md-4">
@@ -53,7 +53,7 @@
                 <div class="card-header">Harmonogram</div>
                 <div class="card-body">
                     <p class="card-text">Ustaw swoją dostępność.</p>
-                    <a href="#" class="btn btn-light disabled">W budowie</a>
+                    <a href="{{ url_for('lekarz_bp.harmonogram') }}" class="btn btn-light">Ustaw harmonogram</a>
                 </div>
             </div>
         </div>

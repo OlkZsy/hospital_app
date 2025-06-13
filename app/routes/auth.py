@@ -17,6 +17,15 @@ def find_user_by_email(email):
             Lekarz.query.filter_by(email=email).first() or
             Recepcjonista.query.filter_by(email=email).first() or
             Pacjent.query.filter_by(email=email).first())
+    #DEBUG
+    # print(f"DEBUG find_user_by_email for {email}:")
+    # print(f"  Admin: {admin}")
+    # print(f"  Lekarz: {lekarz}")
+    # print(f"  Pacjent: {pacjent}")
+    # print(f"  Recepcjonista: {recepcjonista}")
+    
+    # user = admin or lekarz or pacjent or recepcjonista
+    # print(f"  Selected: {user.__class__.__name__ if user else 'None'}")
     return user
 
 @auth_bp.route('/logout')
@@ -41,7 +50,7 @@ def login():
                 return redirect(url_for('lekarz_bp.dashboard'))
             elif isinstance(user, Pacjent):
                 return redirect(url_for('pacjent_bp.dashboard'))
-            elif isinstance(user, Recepcjonista):
+            elif isinstance(user, Recepcjonista):  
                 return redirect(url_for('recepcjonista_bp.dashboard'))
             else:
                 flash('Nieznana rola użytkownika.', 'danger')

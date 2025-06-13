@@ -120,7 +120,8 @@ class SimpleCalendar {
         this.loadMonthSchedule();
     }
     
-    updateMonthDisplay() {
+    updateMonthDisplay() 
+    {
         var monthYearEl = document.getElementById('monthYear');
         monthYearEl.textContent = this.monthNames[this.currentDate.getMonth()] + ' ' + this.currentDate.getFullYear();
         this.renderCalendar();

@@ -9,6 +9,16 @@
             <div class="card text-white bg-primary mb-3">
                 <div class="card-header">Zarządzanie użytkownikami</div>
                 <div class="card-body">
+                    <p class="card-text">Dodaj, edytuj i zarządzaj wszystkimi użytkownikami systemu.</p>
+                    <a href="{{ url_for('administrator_bp.users') }}" class="btn btn-light">Zarządzaj użytkownikami</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card text-white bg-success mb-3">
+                <div class="card-header">Rejestracja personelu</div>
+                <div class="card-body">
                     <p class="card-text">Dodaj nowego lekarza, recepcjonistę lub administratora.</p>
                     <a href="{{ url_for('administrator_bp.register_user') }}" class="btn btn-light">Dodaj użytkownika</a>
                 </div>
@@ -16,21 +26,11 @@
         </div>
 
         <div class="col-md-4">
-            <div class="card text-white bg-success mb-3">
-                <div class="card-header">Wizyty</div>
-                <div class="card-body">
-                    <p class="card-text">Zobacz wszystkie zaplanowane wizyty.</p>
-                    <a href="{{ url_for('administrator_bp.wizyty') }}" class="btn btn-light">Przeglądaj wizyty</a>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4">
             <div class="card text-white bg-info mb-3">
-                <div class="card-header">Harmonogramy lekarzy</div>
+                <div class="card-header">Raporty wizyt</div>
                 <div class="card-body">
-                    <p class="card-text">Zarządzaj dostępnością lekarzy.</p>
-                    <a href="#" class="btn btn-light disabled">W budowie</a>
+                    <p class="card-text">Przegląd statystyk i raportów wszystkich wizyt.</p>
+                    <a href="{{ url_for('administrator_bp.wizyty') }}" class="btn btn-light">Zobacz raporty</a>
                 </div>
             </div>
         </div>

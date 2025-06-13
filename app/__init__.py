@@ -17,6 +17,10 @@ from app.models.wizyta import Wizyta
 from app.models.recepta import Recepta
 from app.models.historia import HistoriaMedyczna
 from app.models.harmonogram import HarmonogramLekarza
+from app.models.recepcjonista import Recepcjonista
+from app.routes.recepcjonista import recepcjonista_bp
+
+
 
 def create_app():
     app = Flask(__name__)
@@ -29,10 +33,21 @@ def create_app():
     ######
     @login_manager.user_loader
     def load_user(user_id):
-        for model in [Administrator, Lekarz, Pacjent, Recepcjonista]:
-            user = model.query.get(int(user_id))
-            if user:
-                return user
+        try:
+            if user_id.startswith('admin_'):
+                id_num = int(user_id.replace('admin_', ''))
+                return Administrator.query.get(id_num)
+            elif user_id.startswith('lekarz_'):
+                id_num = int(user_id.replace('lekarz_', ''))
+                return Lekarz.query.get(id_num)
+            elif user_id.startswith('pacjent_'):
+                id_num = int(user_id.replace('pacjent_', ''))
+                return Pacjent.query.get(id_num)
+            elif user_id.startswith('recepcjonista_'):
+                id_num = int(user_id.replace('recepcjonista_', ''))
+                return Recepcjonista.query.get(id_num)
+        except:
+            pass
         return None
 
     #blueprint reg
@@ -40,6 +55,7 @@ def create_app():
     app.register_blueprint(lekarz_bp)
     app.register_blueprint(pacjent_bp)
     app.register_blueprint(administrator_bp)
+    app.register_blueprint(recepcjonista_bp)
 
     # Главная страница - переадресация на логин
     @app.route('/')

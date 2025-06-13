@@ -1,0 +1,402 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Dzisiejsze wizyty - {{ today.strftime('%d.%m.%Y') }}</h2>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('recepcjonista_bp.zapisz_pacjenta') }}" class="btn btn-success">
+                <i class="fas fa-plus"></i> Zapisz pacjenta
+            </a>
+            <a href="{{ url_for('recepcjonista_bp.dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Powrót
+            </a>
+        </div>
+    </div>
+    
+    <!-- Statystyki dnia -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3>{{ wizyty|length }}</h3>
+                    <p class="mb-0">Wszystkich wizyt</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body text-center">
+                    <h3>{{ wizyty|selectattr("status", "equalto", "zaplanowana")|list|length }}</h3>
+                    <p class="mb-0">Zaplanowanych</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3>{{ wizyty|selectattr("status", "equalto", "zakonczona")|list|length }}</h3>
+                    <p class="mb-0">Zakończonych</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body text-center">
+                    <h3>{{ wizyty|selectattr("status", "equalto", "anulowana")|list|length }}</h3>
+                    <p class="mb-0">Anulowanych</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if wizyty %}
+    <!-- Tabela wizyt -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Lista wizyt na dziś</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Godzina</th>
+                            <th>Pacjent</th>
+                            <th>Lekarz</th>
+                            <th>Status</th>
+                            <th>Notatki</th>
+                            <th>Kontakt</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for wizyta in wizyty %}
+                        <tr>
+                            <td>
+                                <strong>{{ wizyta.data_wizyty.strftime('%H:%M') }}</strong>
+                            </td>
+                            <td>
+                                <div>
+                                    <strong>{{ wizyta.pacjent.imie }} {{ wizyta.pacjent.nazwisko }}</strong><br>
+                                    <small class="text-muted">PESEL: {{ wizyta.pacjent.pesel }}</small>
+                                </div>
+                            </td>
+                            <td>
+                                <div>
+                                    <strong>Dr {{ wizyta.lekarz.imie }} {{ wizyta.lekarz.nazwisko }}</strong><br>
+                                    <small class="text-muted">{{ wizyta.lekarz.specjalizacja }}</small>
+                                </div>
+                            </td>
+                            <td>
+                                {% if wizyta.status == 'zaplanowana' %}
+                                <span class="badge bg-warning">Zaplanowana</span>
+                                {% elif wizyta.status == 'zakonczona' %}
+                                <span class="badge bg-success">Zakończona</span>
+                                {% elif wizyta.status == 'anulowana' %}
+                                <span class="badge bg-danger">Anulowana</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ wizyta.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if wizyta.notatki %}
+                                <span class="text-truncate d-inline-block" style="max-width: 200px;" 
+                                      title="{{ wizyta.notatki }}">
+                                    {{ wizyta.notatki }}
+                                </span>
+                                {% else %}
+                                <span class="text-muted">Brak notatek</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="small">
+                                    {% if wizyta.pacjent.telefon %}
+                                    <div><i class="fas fa-phone"></i> {{ wizyta.pacjent.telefon }}</div>
+                                    {% endif %}
+                                    <div><i class="fas fa-envelope"></i> {{ wizyta.pacjent.email }}</div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Harmonogram dnia -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6><i class="fas fa-clock me-2"></i>Harmonogram dnia</h6>
+                    <div class="legend-hours">
+                        <small>
+                            <span class="badge bg-primary me-2">■</span> Godziny z wizytami
+                            <span class="badge bg-light text-dark ms-2">■</span> Godziny bez wizyt
+                        </small>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% set hours = range(6, 22) %}
+                        {% for hour in hours %}
+                        <div class="col-md-2 col-sm-3 col-4 mb-3">
+                            {% set hour_visits = wizyty|selectattr("data_wizyty.hour", "equalto", hour)|list %}
+                            {% if hour_visits %}
+                            <!-- Часы с визитами - синие -->
+                            <div class="hour-card with-visits">
+                                <div class="hour-header">
+                                    <i class="fas fa-calendar-check me-1"></i>
+                                    <strong>{{ "%02d:00"|format(hour) }}</strong>
+                                    <span class="visit-count">({{ hour_visits|length }})</span>
+                                </div>
+                                <div class="hour-content">
+                                    {% for wizyta in hour_visits %}
+                                    <div class="visit-item">
+                                        <div class="visit-time">{{ wizyta.data_wizyty.strftime('%H:%M') }}</div>
+                                        <div class="visit-patient">{{ wizyta.pacjent.nazwisko }}</div>
+                                        <div class="visit-doctor">Dr {{ wizyta.lekarz.nazwisko }}</div>
+                                        <div class="visit-status">
+                                            {% if wizyta.status == 'zaplanowana' %}
+                                            <span class="status-badge planned">●</span>
+                                            {% elif wizyta.status == 'zakonczona' %}
+                                            <span class="status-badge completed">●</span>
+                                            {% else %}
+                                            <span class="status-badge cancelled">●</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% else %}
+                            <!-- Часы без визит - светлые -->
+                            <div class="hour-card no-visits">
+                                <div class="hour-header-empty">
+                                    <i class="fas fa-clock me-1"></i>
+                                    {{ "%02d:00"|format(hour) }}
+                                </div>
+                                <div class="hour-content-empty">
+                                    <small class="text-muted">Brak wizyt</small>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% else %}
+    <!-- Brak wizyt -->
+    <div class="alert alert-info text-center">
+        <i class="fas fa-calendar-times fa-3x mb-3"></i>
+        <h4>Brak wizyt na dziś</h4>
+        <p>Nie ma żadnych zaplanowanych wizyt na {{ today.strftime('%d.%m.%Y') }}.</p>
+        <a href="{{ url_for('recepcjonista_bp.zapisz_pacjenta') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Zapisz pierwszą wizytę
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.table td {
+    vertical-align: middle;
+}
+
+.text-truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Стили для часов с визитами */
+.hour-card {
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    height: 100%;
+    min-height: 120px;
+    overflow: hidden;
+}
+
+.hour-card.with-visits {
+    background: linear-gradient(135deg, #2E86AB 0%, #1E6B8C 100%);
+    color: white;
+    border: 2px solid #2E86AB;
+    box-shadow: 0 4px 15px rgba(46, 134, 171, 0.3);
+}
+
+.hour-card.with-visits:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(46, 134, 171, 0.4);
+}
+
+.hour-card.no-visits {
+    background: #f8f9fa;
+    color: #6c757d;
+    border: 2px solid #e9ecef;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.hour-card.no-visits:hover {
+    background: #e9ecef;
+    transform: translateY(-2px);
+}
+
+/* Заголовки часов */
+.hour-header {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 8px 12px;
+    text-align: center;
+    font-weight: 600;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.hour-header-empty {
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: 8px;
+}
+
+.visit-count {
+    font-size: 0.8rem;
+    opacity: 0.9;
+}
+
+/* Содержимое часов */
+.hour-content {
+    padding: 8px;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.hour-content-empty {
+    padding: 16px 8px;
+}
+
+.visit-item {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 6px 8px;
+    margin-bottom: 6px;
+    font-size: 0.75rem;
+    line-height: 1.2;
+    border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.visit-item:last-child {
+    margin-bottom: 0;
+}
+
+.visit-time {
+    font-weight: 600;
+    font-size: 0.8rem;
+    margin-bottom: 2px;
+}
+
+.visit-patient {
+    font-weight: 500;
+    margin-bottom: 1px;
+}
+
+.visit-doctor {
+    opacity: 0.9;
+    margin-bottom: 2px;
+}
+
+.visit-status {
+    text-align: right;
+}
+
+/* Статус точки */
+.status-badge {
+    font-size: 0.8rem;
+}
+
+.status-badge.planned {
+    color: #ffc107;
+}
+
+.status-badge.completed {
+    color: #32936F;
+}
+
+.status-badge.cancelled {
+    color: #dc3545;
+}
+
+/* Скроллбар для длинных списков */
+.hour-content::-webkit-scrollbar {
+    width: 3px;
+}
+
+.hour-content::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.hour-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .hour-card {
+        min-height: 100px;
+    }
+    
+    .visit-item {
+        padding: 4px 6px;
+        font-size: 0.7rem;
+    }
+    
+    .hour-header {
+        padding: 6px 8px;
+        font-size: 0.9rem;
+    }
+}
+
+/* Анимация появления */
+.hour-card {
+    animation: fadeInUp 0.6s ease backwards;
+}
+
+.hour-card:nth-child(1) { animation-delay: 0.1s; }
+.hour-card:nth-child(2) { animation-delay: 0.2s; }
+.hour-card:nth-child(3) { animation-delay: 0.3s; }
+.hour-card:nth-child(4) { animation-delay: 0.4s; }
+.hour-card:nth-child(5) { animation-delay: 0.5s; }
+.hour-card:nth-child(6) { animation-delay: 0.6s; }
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Легенда */
+.legend-hours {
+    font-size: 0.85rem;
+}
+
+.legend-hours .badge {
+    font-size: 0.7rem;
+    padding: 2px 4px;
+}
+</style>
+{% endblock %}

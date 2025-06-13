@@ -12,4 +12,4 @@ class Administrator(db.Model, UserMixin):
     haslo_hash = db.Column(db.String(255), nullable=False)
 
     def get_id(self):
-        return str(self.id)  # обязательно
+        return f"admin_{self.id}"  # admin_1, admin_2, etc.

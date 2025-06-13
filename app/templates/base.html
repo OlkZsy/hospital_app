@@ -2,33 +2,498 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <title>{% block title %}Aplikacja Szpitalna{% endblock %}</title>
-    <link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ASKLEPIOS Medical Center{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:wght@300;400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --asklepios-primary: #2E86AB;
+            --asklepios-secondary: #A23B72;
+            --asklepios-accent: #F18F01;
+            --asklepios-success: #32936F;
+            --asklepios-light: #F8FFFE;
+            --asklepios-dark: #0A1128;
+            --asklepios-muted: #6B7280;
+            --asklepios-border: #E5E7EB;
+            --asklepios-gradient: linear-gradient(135deg, #2E86AB 0%, #A23B72 100%);
+            --asklepios-gradient-light: linear-gradient(135deg, #E0F2FE 0%, #FDF2F8 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: var(--asklepios-dark);
+            background: var(--asklepios-light);
+            min-height: 100vh;
+        }
+
+        /* Navbar */
+        .navbar-asklepios {
+            background: var(--asklepios-gradient);
+            box-shadow: 0 4px 20px rgba(46, 134, 171, 0.15);
+            border-bottom: 3px solid var(--asklepios-accent);
+        }
+
+        .navbar-brand {
+            font-family: 'Merriweather', serif;
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: white !important;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--asklepios-accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .navbar-nav .nav-link {
+            color: rgba(255, 255, 255, 0.9) !important;
+            font-weight: 500;
+            padding: 0.75rem 1.25rem !important;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            margin: 0 4px;
+        }
+
+        .navbar-nav .nav-link:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: white !important;
+            transform: translateY(-2px);
+        }
+
+        .navbar-nav .nav-link.active {
+            background: var(--asklepios-accent);
+            color: white !important;
+        }
+
+        /* Cards */
+        .card {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-header {
+            background: var(--asklepios-gradient-light);
+            border-bottom: 2px solid var(--asklepios-border);
+            font-weight: 600;
+            padding: 1.25rem;
+        }
+
+        /* Dashboard Cards */
+        .dashboard-card {
+            background: var(--asklepios-gradient);
+            color: white;
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .dashboard-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            transform: translate(30px, -30px);
+        }
+
+        .dashboard-card .card-header {
+            background: rgba(255, 255, 255, 0.15);
+            
+            color: white;
+            font-weight: 600;
+        }
+
+        .dashboard-card .btn-light {
+          background: white;
+          color: var(--asklepios-dark) !important; /* Черный текст */
+          border: none;
+          border-radius: 12px;
+          font-weight: 600;
+          padding: 0.75rem 1.5rem;
+          transition: all 0.3s ease;
+        }
+
+        .dashboard-card .btn-light:hover {
+          background: var(--asklepios-accent);
+          color: white !important; /* Белый при наведении */
+          transform: translateY(-2px);
+        }
+
+        /* Primary Cards Colors */
+        .card.text-white.bg-primary {
+            background: linear-gradient(135deg, var(--asklepios-primary) 0%, #1E6B8C 100%) !important;
+        }
+
+        .card.text-white.bg-success {
+            background: linear-gradient(135deg, var(--asklepios-success) 0%, #267A5A 100%) !important;
+        }
+
+        .card.text-white.bg-warning {
+            background: linear-gradient(135deg, var(--asklepios-accent) 0%, #D4760A 100%) !important;
+        }
+
+        .card.text-white.bg-info {
+            background: linear-gradient(135deg, var(--asklepios-secondary) 0%, #8B2E5C 100%) !important;
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background: var(--asklepios-primary);
+            border-color: var(--asklepios-primary);
+            border-radius: 12px;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background: #1E6B8C;
+            border-color: #1E6B8C;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: var(--asklepios-success);
+            border-color: var(--asklepios-success);
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        .btn-warning {
+            background: var(--asklepios-accent);
+            border-color: var(--asklepios-accent);
+            color: white;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        /* Forms */
+        .form-control {
+            border: 2px solid var(--asklepios-border);
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: var(--asklepios-primary);
+            box-shadow: 0 0 0 0.2rem rgba(46, 134, 171, 0.25);
+        }
+
+        .form-select {
+            border: 2px solid var(--asklepios-border);
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+        }
+
+        /* Tables */
+        .table {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .table thead th {
+            background: var(--asklepios-gradient);
+            color: white;
+            border: none;
+            font-weight: 600;
+            padding: 1rem;
+        }
+
+        .table tbody tr {
+            transition: all 0.3s ease;
+        }
+
+        .table tbody tr:hover {
+            background: var(--asklepios-gradient-light);
+            transform: scale(1.01);
+        }
+
+        /* Badges */
+        .badge {
+            font-size: 0.8rem;
+            padding: 0.5rem 1rem;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        .badge.bg-success {
+            background: var(--asklepios-success) !important;
+        }
+
+        .badge.bg-warning {
+            background: var(--asklepios-accent) !important;
+        }
+
+        .badge.bg-primary {
+            background: var(--asklepios-primary) !important;
+        }
+
+        /* Alerts */
+        .alert {
+            border: none;
+            border-radius: 16px;
+            border-left: 4px solid;
+        }
+
+        .alert-success {
+            background: rgba(50, 147, 111, 0.1);
+            border-left-color: var(--asklepios-success);
+            color: var(--asklepios-success);
+        }
+
+        .alert-info {
+            background: rgba(46, 134, 171, 0.1);
+            border-left-color: var(--asklepios-primary);
+            color: var(--asklepios-primary);
+        }
+
+        .alert-warning {
+            background: rgba(241, 143, 1, 0.1);
+            border-left-color: var(--asklepios-accent);
+            color: #D4760A;
+        }
+
+        /* Main Content */
+        .main-content {
+            min-height: calc(100vh - 76px);
+            background: var(--asklepios-light);
+        }
+
+        .container, .container-fluid {
+            position: relative;
+        }
+
+        /* Page Headers */
+        h1, h2, h3 {
+            font-family: 'Merriweather', serif;
+            color: var(--asklepios-dark);
+            font-weight: 600;
+        }
+
+        h2 {
+            margin-bottom: 2rem;
+            position: relative;
+            padding-bottom: 0.5rem;
+        }
+
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 60px;
+            height: 3px;
+            background: var(--asklepios-accent);
+            border-radius: 2px;
+        }
+
+        /* Modal */
+        .modal-content {
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            background: var(--asklepios-gradient);
+            color: white;
+            border-radius: 20px 20px 0 0;
+        }
+
+        /* Footer */
+        .footer {
+          background: var(--asklepios-dark);
+          color: white !important;
+          padding: 2rem 0;
+          margin-top: auto;
+        }
+
+        .footer h5, .footer p {
+          color: white !important;
+        }
+
+        .text-muted {
+          color: rgba(255, 255, 255, 0.7) !important;
+        }
+
+        /* Loading animations */
+        .spinner-border {
+            color: var(--asklepios-primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 1rem;
+            }
+            
+            .card {
+                margin-bottom: 1.5rem;
+            }
+            
+            .navbar-brand {
+                font-size: 1.25rem;
+            }
+        }
+
+        /* Flash messages */
+        .flash-messages {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 1050;
+            min-width: 300px;
+        }
+
+        .flash-message {
+            margin-bottom: 10px;
+            animation: slideInRight 0.3s ease;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
 </head>
+
 <body>
-    <header>
-        <h1>Aplikacja Szpitalna</h1>
-        {% if current_user.is_authenticated %}
-        <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('auth_bp.logout') }}">Wyloguj się</a>
-        </li>
-        {% else %}
-        <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('auth_bp.login') }}">Logowanie</a>
-        </li>
-        {% endif %}
-    </header>
-    <main>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-asklepios">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <div class="brand-icon">
+                    <i class="fas fa-staff-snake"></i>
+                </div>
+                <span>ASKLEPIOS</span>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    {% if current_user.is_authenticated %}
+                        <li class="nav-item">
+                            <span class="nav-link">
+                                <i class="fas fa-user-circle me-2"></i>
+                                {{ current_user.imie }} {{ current_user.nazwisko }}
+                            </span>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('auth_bp.logout') }}">
+                                <i class="fas fa-sign-out-alt me-2"></i>Wyloguj
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('auth_bp.login') }}">
+                                <i class="fas fa-sign-in-alt me-2"></i>Zaloguj
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    <div class="flash-messages">
         {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            <ul class="flashes">
-              {% for category, message in messages %}
-                <li class="{{ category }}">{{ message }}</li>
-              {% endfor %}
-            </ul>
-          {% endif %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} flash-message" role="alert">
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
         {% endwith %}
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
         {% block content %}{% endblock %}
     </main>
+
+    <!-- Footer -->
+    <footer class="footer mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>ASKLEPIOS Medical Center</h5>
+                    <p class="text-muted">Nowoczesna opieka medyczna w sercu miasta</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <p class="text-muted">© 2025 ASKLEPIOS. Wszystkie prawa zastrzeżone.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Auto-hide flash messages -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(function(message) {
+                setTimeout(function() {
+                    message.style.animation = 'slideOutRight 0.3s ease';
+                    setTimeout(function() {
+                        message.remove();
+                    }, 300);
+                }, 5000);
+            });
+        });
+    </script>
+    
+    {% block scripts %}{% endblock %}
 </body>
 </html>
