@@ -337,33 +337,48 @@ class SimpleCalendar {
     }
     
     // Для будущих дней показываем доступные слоты
-    if (!isPastDay && availableSlots.length > 0) {
+    if (!isPastDay && slots.length > 0) {
         var currentTime = now.getTime();
         var bufferMinutes = 15;
         
-        var futureSlots = availableSlots.filter(function(slot) {
-            var slotDateTime = new Date(slot.datetime);
-            return slotDateTime.getTime() > (currentTime + bufferMinutes * 60 * 1000);
+        var allSlots = slots.slice().sort(function(a, b) {
+            return a.time.localeCompare(b.time);
         });
         
-        if (futureSlots.length > 0) {
-            html += '<div class="mb-3">';
-            html += '<h6>Dostępne terminy:</h6>';
-            html += '<div class="row g-2">';
+        html += '<div class="mb-3">';
+        html += '<h6>Wszystkie terminy:</h6>';
+        html += '<div class="row g-2">';
+        
+        allSlots.forEach(function(slot) {
+            var slotDateTime = new Date(slot.datetime);
+            var isInPast = slotDateTime.getTime() <= (currentTime + bufferMinutes * 60 * 1000);
             
-            futureSlots.forEach(function(slot) {
-                html += '<div class="col-md-3 col-sm-4 col-6 mb-2">' +
-                       '<div class="badge bg-success w-100 p-2" style="cursor: pointer" onclick="calendar.selectSlot(\'' + dateStr + '\', \'' + slot.time + '\', \'' + slot.datetime + '\')">' +
-                       '<div class="fw-bold">' + slot.time + '</div>' +
-                       '<small>Dostępne</small>' +
-                       '</div>' +
-                       '</div>';
-            });
+            var badgeClass, statusText, clickHandler = '', cursor = 'default';
             
-            html += '</div></div>';
-        } else if (availableSlots.length > 0) {
-            html += '<div class="alert alert-warning">Wszystkie dostępne terminy na ten dzień już minęły.</div>';
-        }
+            if (isInPast) {
+                badgeClass = 'bg-secondary';
+                statusText = 'Minęło';
+                cursor = 'not-allowed';
+            } else if (slot.available) {
+                badgeClass = 'bg-success';
+                statusText = 'Dostępne';
+                clickHandler = 'onclick="calendar.selectSlot(\'' + dateStr + '\', \'' + slot.time + '\', \'' + slot.datetime + '\')"';
+                cursor = 'pointer';
+            } else {
+                badgeClass = 'bg-danger';
+                statusText = 'Zajęte';
+                cursor = 'not-allowed';
+            }
+            
+            html += '<div class="col-md-3 col-sm-4 col-6 mb-2">' +
+                '<div class="badge ' + badgeClass + ' w-100 p-2" style="cursor: ' + cursor + ';" ' + clickHandler + '>' +
+                '<div class="fw-bold">' + slot.time + '</div>' +
+                '<small>' + statusText + '</small>' +
+                '</div>' +
+                '</div>';
+        });
+        
+        html += '</div></div>';
     }
     
     // Если НЕТ ВИЗИТ ВООБЩЕ
@@ -380,6 +395,27 @@ class SimpleCalendar {
 
 
     selectSlot(dateStr, timeStr, datetime) {
+    // Проверяем доступность слота перед выбором
+        var schedule = this.monthSchedule[dateStr];
+        if (schedule && schedule.slots) {
+            var selectedSlot = schedule.slots.find(function(slot) {
+                return slot.datetime === datetime;
+            });
+            
+            // Если слот занят или в прошлом - не разрешаем выбор
+            if (!selectedSlot || !selectedSlot.available) {
+                alert('Ten termin jest niedostępny');
+                return;
+            }
+            
+            var now = new Date();
+            var slotDateTime = new Date(datetime);
+            if (slotDateTime.getTime() <= (now.getTime() + 15 * 60 * 1000)) {
+                alert('Nie można wybrać terminu z przeszłości');
+                return;
+            }
+        }
+        
         this.selectedSlot = { dateStr: dateStr, timeStr: timeStr, datetime: datetime };
         
         // Закрываем модал расписания
@@ -587,5 +623,36 @@ function confirmAppointment() {
 .calendar-day.past-day:hover {
     background-color: #f1aeb5;
 }
+
+
+.badge.bg-danger {
+    cursor: not-allowed !important;
+    opacity: 0.7;
+}
+
+.badge.bg-secondary {
+    cursor: not-allowed !important;
+    opacity: 0.5;
+}
+
+.badge.bg-success:hover {
+    background-color: #198754 !important;
+    transform: scale(1.05);
+    transition: all 0.2s ease;
+}
+
+.badge.bg-danger:hover {
+    background-color: #dc3545 !important;
+    transform: none;
+}
+
+.badge.bg-secondary:hover {
+    background-color: #6c757d !important;
+    transform: none;
+}
+
+
+
+
 </style>
 {% endblock %}

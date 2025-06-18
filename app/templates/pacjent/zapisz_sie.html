@@ -282,34 +282,37 @@ class PatientBooking {
 }
     
     getScheduleInfo(dateStr) {
-    var schedule = this.monthSchedule[dateStr];
-    
-    if (!schedule) {
-        return { cssClass: 'no-schedule', text: 'Brak harmonogramu', hasSchedule: false };
+        var schedule = this.monthSchedule[dateStr];
+        
+        if (!schedule) {
+            return { cssClass: 'no-schedule', text: 'Brak harmonogramu', hasSchedule: false };
+        }
+        
+        var now = new Date();
+        var currentTime = now.getTime();
+        var bufferMinutes = 15;
+        
+        var mySlots = schedule.slots.filter(function(s) { return s.is_mine; });
+        var availableSlots = schedule.slots.filter(function(s) { 
+            var slotDateTime = new Date(s.datetime);
+            var isNotInPast = slotDateTime.getTime() > (currentTime + bufferMinutes * 60 * 1000);
+            return s.available && isNotInPast; 
+        });
+        var occupiedSlots = schedule.slots.filter(function(s) { return !s.available; });
+        var totalSlots = schedule.slots.length;
+        
+        if (mySlots.length > 0) {
+            return { cssClass: 'my-appointment', text: 'Moja wizyta', hasSchedule: true };
+        } else if (availableSlots.length === 0) {
+            return { cssClass: 'all-occupied', text: 'Niedostępne', hasSchedule: true };
+        } else if (occupiedSlots.length === 0) {
+            // Все слоты доступны - зеленый
+            return { cssClass: 'all-available', text: availableSlots.length + ' dostępne', hasSchedule: true };
+        } else {
+            // Есть и занятые, и доступные - желтый
+            return { cssClass: 'mixed-schedule', text: availableSlots.length + ' dostępne', hasSchedule: true };
+        }
     }
-    
-    var now = new Date();
-    var currentTime = now.getTime();
-    var bufferMinutes = 15;
-    
-    var mySlots = schedule.slots.filter(function(s) { return s.is_mine; });
-    var availableSlots = schedule.slots.filter(function(s) { 
-        var slotDateTime = new Date(s.datetime);
-        var isNotInPast = slotDateTime.getTime() > (currentTime + bufferMinutes * 60 * 1000);
-        return s.available && isNotInPast; 
-    });
-    var totalSlots = schedule.slots.length;
-    
-    if (mySlots.length > 0) {
-        return { cssClass: 'my-appointment', text: 'Moja wizyta', hasSchedule: true };
-    } else if (availableSlots.length === 0) {
-        return { cssClass: 'all-occupied', text: 'Niedostępne', hasSchedule: true };
-    } else if (availableSlots.length > 0) {
-        return { cssClass: 'all-available', text: availableSlots.length + ' dostępne', hasSchedule: true };
-    } else {
-        return { cssClass: 'mixed-schedule', text: availableSlots.length + ' wolne', hasSchedule: true };
-    }
-}
     
     loadMonthSchedule() {
         if (!this.selectedDoctor) return;

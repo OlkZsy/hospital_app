@@ -253,32 +253,44 @@ class DoctorCalendar {
             html += '</div></div>';
         }
         
-        if (availableSlots.length > 0) {
-            var now = new Date();
-            var currentTime = now.getTime();
-            var bufferMinutes = 15;
+        var now = new Date();
+        var currentTime = now.getTime();
+        var bufferMinutes = 15;
+
+        var allSlots = slots.slice(); // Копируем все слоты
+        allSlots.sort(function(a, b) { return a.time.localeCompare(b.time); });
+
+        if (allSlots.length > 0) {
+            html += '<div class="mb-3">';
+            html += '<h6><i class="fas fa-clock text-info"></i> Wszystkie terminy:</h6>';
+            html += '<div class="row g-2">';
             
-            var futureSlots = availableSlots.filter(function(slot) {
+            allSlots.forEach(function(slot) {
                 var slotDateTime = new Date(slot.datetime);
-                return slotDateTime.getTime() > (currentTime + bufferMinutes * 60 * 1000);
+                var isInPast = slotDateTime.getTime() <= (currentTime + bufferMinutes * 60 * 1000);
+                
+                var badgeClass, statusText;
+                
+                if (isInPast) {
+                    badgeClass = 'bg-secondary';
+                    statusText = slot.available ? 'Minęło' : 'Było zajęte';
+                } else if (slot.available) {
+                    badgeClass = 'bg-success';
+                    statusText = 'Dostępne';
+                } else {
+                    badgeClass = 'bg-danger';
+                    statusText = 'Zajęte';
+                }
+                
+                html += '<div class="col-md-3 col-sm-4 col-6 mb-2">' +
+                    '<div class="badge ' + badgeClass + ' w-100 p-2">' +
+                    '<div class="fw-bold">' + slot.time + '</div>' +
+                    '<small>' + statusText + '</small>' +
+                    '</div>' +
+                    '</div>';
             });
             
-            if (futureSlots.length > 0) {
-                html += '<div class="mb-3">';
-                html += '<h6><i class="fas fa-clock text-info"></i> Dostępne terminy:</h6>';
-                html += '<div class="row g-2">';
-                
-                futureSlots.forEach(function(slot) {
-                    html += '<div class="col-md-3 col-sm-4 col-6 mb-2">' +
-                           '<div class="badge bg-success w-100 p-2">' +
-                           '<div class="fw-bold">' + slot.time + '</div>' +
-                           '<small>Dostępne</small>' +
-                           '</div>' +
-                           '</div>';
-                });
-                
-                html += '</div></div>';
-            }
+            html += '</div></div>';
         }
         
         if (appointments.length === 0 && availableSlots.length === 0) {

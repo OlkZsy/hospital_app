@@ -388,33 +388,49 @@ renderDayInfo(slots, dateStr, container)
     }
     
     // Для будущих дней показываем доступные слоты
-    if (!isPastDay && availableSlots.length > 0) {
+    if (!isPastDay && slots.length > 0) {
         var currentTime = now.getTime();
         var bufferMinutes = 15;
         
-        var futureSlots = availableSlots.filter(function(slot) {
-            var slotDateTime = new Date(slot.datetime);
-            return slotDateTime.getTime() > (currentTime + bufferMinutes * 60 * 1000);
+        // Сортируем все слоты по времени
+        var allSlots = slots.slice().sort(function(a, b) {
+            return a.time.localeCompare(b.time);
         });
         
-        if (futureSlots.length > 0) {
-            html += '<div class="mb-3">';
-            html += '<h6><i class="fas fa-plus-circle text-success"></i> Dostępne terminy:</h6>';
-            html += '<div class="row g-2">';
+        html += '<div class="mb-3">';
+        html += '<h6><i class="fas fa-clock text-info"></i> Wszystkie terminy:</h6>';
+        html += '<div class="row g-2">';
+        
+        allSlots.forEach(function(slot) {
+            var slotDateTime = new Date(slot.datetime);
+            var isInPast = slotDateTime.getTime() <= (currentTime + bufferMinutes * 60 * 1000);
             
-            futureSlots.forEach(function(slot) {
-                html += '<div class="col-md-3 col-sm-4 col-6 mb-2">' +
-                       '<button class="btn btn-success btn-sm w-100" onclick="appointmentCalendar.selectTimeSlot(\'' + dateStr + '\', \'' + slot.time + '\', \'' + slot.datetime + '\')">' +
-                       '<div class="fw-bold">' + slot.time + '</div>' +
-                       '<small>Dostępne</small>' +
-                       '</button>' +
-                       '</div>';
-            });
+            var badgeClass, statusText, clickHandler = '', cursor = 'default';
             
-            html += '</div></div>';
-        } else if (availableSlots.length > 0) {
-            html += '<div class="alert alert-warning">Wszystkie dostępne terminy na ten dzień już minęły.</div>';
-        }
+            if (isInPast) {
+                badgeClass = 'bg-secondary';
+                statusText = 'Minęło';
+                cursor = 'not-allowed';
+            } else if (slot.available) {
+                badgeClass = 'bg-success';
+                statusText = 'Dostępne';
+                clickHandler = 'onclick="appointmentCalendar.selectTimeSlot(\'' + dateStr + '\', \'' + slot.time + '\', \'' + slot.datetime + '\')"';
+                cursor = 'pointer';
+            } else {
+                badgeClass = 'bg-danger';
+                statusText = 'Zajęte';
+                cursor = 'not-allowed';
+            }
+            
+            html += '<div class="col-md-3 col-sm-4 col-6 mb-2">' +
+                '<div class="badge ' + badgeClass + ' w-100 p-2" style="cursor: ' + cursor + ';" ' + clickHandler + '>' +
+                '<div class="fw-bold">' + slot.time + '</div>' +
+                '<small>' + statusText + '</small>' +
+                '</div>' +
+                '</div>';
+        });
+        
+        html += '</div></div>';
     }
     
     // Если НЕТ ВИЗИТ ВООБЩЕ - показываем соответствующее сообщение
@@ -491,66 +507,51 @@ renderDayInfo(slots, dateStr, container)
     
     renderTimeSlots(slots, dateStr, container) 
     {
-    var now = new Date();
-    var currentTime = now.getTime();
-    var bufferMinutes = 15; // Минимум 15 минут от текущего времени
-    
-    var availableSlots = slots.filter(function(slot) { 
-        var slotDateTime = new Date(slot.datetime);
-        var isNotInPast = slotDateTime.getTime() > (currentTime + bufferMinutes * 60 * 1000);
-        return slot.available && isNotInPast; 
-    });
-    
-    if (availableSlots.length === 0) {
-        // Проверим есть ли вообще доступные слоты (без учета времени)
-        var allAvailableSlots = slots.filter(function(slot) { return slot.available; });
-        if (allAvailableSlots.length === 0) {
-            container.innerHTML = '<div class="alert alert-warning">Wszystkie terminy na ten dzień są zajęte.</div>';
-        } else {
-            container.innerHTML = '<div class="alert alert-info">Wszystkie dostępne terminy na ten dzień już minęły. Wybierz inną datę.</div>';
-        }
-        return;
+        var now = new Date();
+        var currentTime = now.getTime();
+        var bufferMinutes = 15;
+        
+        var slotsHtml = slots.map(function(slot) {
+            var slotDateTime = new Date(slot.datetime);
+            var slotTime = slotDateTime.getTime();
+            var isInPast = slotTime <= (currentTime + bufferMinutes * 60 * 1000);
+            
+            var badgeClass, clickHandler = '', cursor = 'default', patientInfo;
+            
+            if (isInPast && slot.available) {
+                // Прошедшее время - серый
+                badgeClass = 'bg-secondary';
+                patientInfo = 'Czas minął';
+                cursor = 'not-allowed';
+            } else if (slot.available) {
+                // Доступный слот - зеленый
+                badgeClass = 'bg-success';
+                patientInfo = 'Dostępne';
+                clickHandler = 'onclick="appointmentCalendar.selectTimeSlot(\'' + dateStr + '\', \'' + slot.time + '\', \'' + slot.datetime + '\')"';
+                cursor = 'pointer';
+            } else {
+                // Занятый слот - красный
+                badgeClass = 'bg-danger';
+                patientInfo = slot.patient || 'Zajęte';
+                cursor = 'not-allowed';
+            }
+            
+            var opacity = (isInPast && slot.available) ? '0.5' : '1';
+            
+            return '<div class="col-md-3 col-sm-4 col-6 mb-2">' +
+                '<div class="badge ' + badgeClass + ' w-100 p-2" style="cursor: ' + cursor + '; opacity: ' + opacity + '" ' + clickHandler + '>' +
+                '<div class="fw-bold">' + slot.time + '</div>' +
+                '<small>' + patientInfo + '</small>' +
+                '</div>' +
+                '</div>';
+        }).join('');
+        
+        container.innerHTML = '<div class="mb-3">' +
+                            '<h6>Dostępne terminy (15 minut każdy):</h6>' +
+                            '<p class="text-muted">Kliknij na zielony termin aby go wybrać. Czerwone są zajęte, szare już minęły.</p>' +
+                            '</div>' +
+                            '<div class="row g-2">' + slotsHtml + '</div>';
     }
-    
-    var slotsHtml = slots.map(function(slot) {
-        var slotDateTime = new Date(slot.datetime);
-        var slotTime = slotDateTime.getTime();
-        var isInPast = slotTime <= (currentTime + bufferMinutes * 60 * 1000);
-        
-        var badgeClass, clickHandler = '', cursor = 'default', patientInfo;
-        
-        if (isInPast && slot.available) {
-            // Прошедшее время - серый
-            badgeClass = 'bg-secondary';
-            patientInfo = 'Czas minął';
-            cursor = 'not-allowed';
-        } else if (slot.available) {
-            badgeClass = 'bg-success';
-            patientInfo = 'Dostępne';
-            clickHandler = 'onclick="appointmentCalendar.selectTimeSlot(\'' + dateStr + '\', \'' + slot.time + '\', \'' + slot.datetime + '\')"';
-            cursor = 'pointer';
-        } else {
-            badgeClass = 'bg-danger';
-            patientInfo = slot.patient || 'Zajęte';
-        }
-        
-        var opacity = (isInPast && slot.available) ? '0.5' : '1';
-        var disabled = (isInPast && slot.available) ? 'opacity-50' : '';
-        
-        return '<div class="col-md-3 col-sm-4 col-6 mb-2">' +
-               '<div class="badge ' + badgeClass + ' w-100 p-2 ' + disabled + '" style="cursor: ' + cursor + '; opacity: ' + opacity + '" ' + clickHandler + '>' +
-               '<div class="fw-bold">' + slot.time + '</div>' +
-               '<small>' + patientInfo + '</small>' +
-               '</div>' +
-               '</div>';
-    }).join('');
-    
-    container.innerHTML = '<div class="mb-3">' +
-                         '<h6>Dostępne terminy (15 minut każdy):</h6>' +
-                         '<p class="text-muted">Kliknij na zielony termin aby go wybrać. Szare terminy już minęły.</p>' +
-                         '</div>' +
-                         '<div class="row g-2">' + slotsHtml + '</div>';
-}
     
     selectTimeSlot(dateStr, timeStr, datetime) 
     {

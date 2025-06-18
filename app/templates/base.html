@@ -80,7 +80,7 @@
 
         .navbar-nav .nav-link:hover {
             background: rgba(255, 255, 255, 0.15);
-            color: white !important;
+            color: #f18f01/*rgb(255, 217, 0)*/ !important;
             transform: translateY(-2px);
         }
 
@@ -171,6 +171,11 @@
             background: linear-gradient(135deg, var(--asklepios-secondary) 0%, #8B2E5C 100%) !important;
         }
 
+        .card.text-white .card-header {
+            color: #000000;
+        } 
+        /* ЦВЕТ ТЕКСТА В ТАБЛИЧКАХ !!!!!!!!!!!! */
+        
         /* Buttons */
         .btn-primary {
             background: var(--asklepios-primary);
@@ -231,7 +236,7 @@
 
         .table thead th {
             background: var(--asklepios-gradient);
-            color: white;
+            color: rgb(0, 0, 0);
             border: none;
             font-weight: 600;
             padding: 1rem;
@@ -420,10 +425,10 @@
                 <ul class="navbar-nav ms-auto">
                     {% if current_user.is_authenticated %}
                         <li class="nav-item">
-                            <span class="nav-link">
+                            <a class="nav-link" href="{% if current_user.__class__.__name__ == 'Administrator' %}{{ url_for('administrator_bp.dashboard') }}{% elif current_user.__class__.__name__ == 'Lekarz' %}{{ url_for('lekarz_bp.dashboard') }}{% elif current_user.__class__.__name__ == 'Pacjent' %}{{ url_for('pacjent_bp.dashboard') }}{% elif current_user.__class__.__name__ == 'Recepcjonista' %}{{ url_for('recepcjonista_bp.dashboard') }}{% endif %}">
                                 <i class="fas fa-user-circle me-2"></i>
                                 {{ current_user.imie }} {{ current_user.nazwisko }}
-                            </span>
+                            </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('auth_bp.logout') }}">
