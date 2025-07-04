@@ -34,6 +34,11 @@
             {{ form.specjalizacja.label(class="form-label") }}
             {{ form.specjalizacja(class="form-control") }}
         </div>
+        <div class="form-group mb-3" id="dzialField" style="display: none;">
+            {{ form.dzial.label(class="form-label") }}
+            {{ form.dzial(class="form-control", placeholder="np. Zarządzanie, Nadzór Medyczny") }}
+            <div class="form-text">Dział lub obszar odpowiedzialności ordynatora</div>
+        </div>
         <button type="submit" class="btn btn-success mt-3">Zarejestruj</button>
         <a href="{{ url_for('administrator_bp.dashboard') }}" class="btn btn-secondary mt-3 ml-2">Powrót do panelu</a>
     </form>
@@ -43,17 +48,25 @@
 document.addEventListener('DOMContentLoaded', function() {
     var rolaSelect = document.getElementById('rolaSelect');
     var specField = document.getElementById('specjalizacjaField');
+    var dzialField = document.getElementById('dzialField');
     
-    function toggleSpecjalizacja() {
-        if (rolaSelect.value === 'lekarz') {
+    function toggleFields() {
+        var selectedRole = rolaSelect.value;
+        
+        if (selectedRole === 'lekarz') {
             specField.style.display = 'block';
+            if (dzialField) dzialField.style.display = 'none';  // DODAĆ
+        } else if (selectedRole === 'ordynator') {  // DODAĆ TĄ SEKCJĘ
+            specField.style.display = 'none';
+            if (dzialField) dzialField.style.display = 'block';
         } else {
             specField.style.display = 'none';
+            if (dzialField) dzialField.style.display = 'none';  // DODAĆ
         }
     }
     
-    rolaSelect.addEventListener('change', toggleSpecjalizacja);
-    toggleSpecjalizacja(); // Проверяем при загрузке
+    rolaSelect.addEventListener('change', toggleFields);
+      toggleFields();
 });
 </script>
 {% endblock %}

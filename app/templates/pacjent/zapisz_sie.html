@@ -225,7 +225,7 @@ class PatientBooking {
     
     var firstDay = new Date(year, month, 1);
     var lastDay = new Date(year, month + 1, 0);
-    var startDay = (firstDay.getDay() + 6) % 7; // Понедельник = 0
+    var startDay = (firstDay.getDay() + 6) % 7; // ФИКС сбитого КАЛЕНДАРЯ //// Понедельник = 0 !!!!!!!!
     
     var calendarHTML = '';
     
@@ -306,10 +306,10 @@ class PatientBooking {
         } else if (availableSlots.length === 0) {
             return { cssClass: 'all-occupied', text: 'Niedostępne', hasSchedule: true };
         } else if (occupiedSlots.length === 0) {
-            // Все слоты доступны - зеленый
+            // все слоты доступны - зеленый
             return { cssClass: 'all-available', text: availableSlots.length + ' dostępne', hasSchedule: true };
         } else {
-            // Есть и занятые, и доступные - желтый
+            //  занятые и доступные - желтый
             return { cssClass: 'mixed-schedule', text: availableSlots.length + ' dostępne', hasSchedule: true };
         }
     }
@@ -579,7 +579,7 @@ class PatientBooking {
     }
 }
 
-// Инициализация
+// ???
 var patientBooking;
 document.addEventListener('DOMContentLoaded', function() {
     patientBooking = new PatientBooking();
@@ -661,7 +661,7 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 
-/* ДОБАВИТЬ в секцию <style> в конце файла: */
+
 .booking-day {
     min-width: 80px; /* Минимальная ширина */
     flex: 1; /* Равномерное распределение */

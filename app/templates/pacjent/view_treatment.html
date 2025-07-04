@@ -107,8 +107,8 @@ class PatientTreatmentView {
     loadHistoria() {
         var historiaEl = document.getElementById('historiaContent');
         
-        // Симуляция загрузки - здесь должен быть реальный API endpoint
-        // Пока используем данные из шаблона
+        // симуляция загрузки  API endpoint?
+        // используем данные из шаблона
         fetch('/pacjent/api/my-historia')
             .then(function(response) {
                 if (response.ok) {

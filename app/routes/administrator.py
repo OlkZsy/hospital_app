@@ -9,7 +9,7 @@ from app.models.pacjent import Pacjent
 from app.models.wizyta import Wizyta
 from app.extensions import db
 from datetime import datetime, date, timedelta
-
+from app.models.ordynator import Ordynator
 
 
 
@@ -162,6 +162,10 @@ def register_user():
         elif rola == 'administrator':
             user = Administrator(imie=imie, nazwisko=nazwisko, email=email, telefon=telefon,
                                  haslo_hash=hashed_password)
+        elif rola == 'ordynator':  # DODAĆ TĄ SEKCJĘ
+            dzial = form.dzial.data if form.dzial.data else 'Zarządzanie'
+            user = Ordynator(imie=imie, nazwisko=nazwisko, email=email, telefon=telefon,
+                           haslo_hash=hashed_password, dzial=dzial)
         else:
             flash('Nieznana rola.', 'danger')
             return redirect(url_for('administrator_bp.register_user'))
@@ -205,6 +209,22 @@ def users():
             'telefon': admin.telefon,
             'role': 'administrator',
             'specjalizacja': None,
+            'numer_licencji': None,
+            'pesel': None,
+            'data_urodzenia': None
+        })
+
+    # Ordynatorzy 
+    ordynatorzy = Ordynator.query.all()
+    for ordynator in ordynatorzy:
+        all_users.append({
+            'id': ordynator.id_ordynatora,
+            'imie': ordynator.imie,
+            'nazwisko': ordynator.nazwisko,
+            'email': ordynator.email,
+            'telefon': ordynator.telefon,
+            'role': 'ordynator',
+            'specjalizacja': ordynator.dzial,
             'numer_licencji': None,
             'pesel': None,
             'data_urodzenia': None

@@ -19,7 +19,8 @@ from app.models.historia import HistoriaMedyczna
 from app.models.harmonogram import HarmonogramLekarza
 from app.models.recepcjonista import Recepcjonista
 from app.routes.recepcjonista import recepcjonista_bp
-
+from app.routes.ordynator import ordynator_bp  
+from app.models.ordynator import Ordynator 
 
 
 def create_app():
@@ -46,6 +47,9 @@ def create_app():
             elif user_id.startswith('recepcjonista_'):
                 id_num = int(user_id.replace('recepcjonista_', ''))
                 return Recepcjonista.query.get(id_num)
+            elif user_id.startswith('ordynator_'):  # DODAĆ TĄ SEKCJĘ
+                id_num = int(user_id.replace('ordynator_', ''))
+                return Ordynator.query.get(id_num)
         except:
             pass
         return None
@@ -56,7 +60,7 @@ def create_app():
     app.register_blueprint(pacjent_bp)
     app.register_blueprint(administrator_bp)
     app.register_blueprint(recepcjonista_bp)
-
+    app.register_blueprint(ordynator_bp)
 
 
     # Главная страница - переадресация на логин

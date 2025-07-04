@@ -80,18 +80,21 @@ class DoctorCalendar {
         this.init();
     }
     
-    init() {
+    init() 
+    {
         this.updateMonthDisplay();
         this.loadMonthSchedule();
     }
     
-    updateMonthDisplay() {
+    updateMonthDisplay() 
+    {
         var monthYearEl = document.getElementById('monthYear');
         monthYearEl.textContent = this.monthNames[this.currentDate.getMonth()] + ' ' + this.currentDate.getFullYear();
         this.renderCalendar();
     }
     
-    renderCalendar() {
+    renderCalendar() 
+    {
         var calendarDays = document.getElementById('calendarDays');
         calendarDays.innerHTML = '';
         
@@ -143,7 +146,8 @@ class DoctorCalendar {
         calendarDays.innerHTML = calendarHTML;
     }
     
-    getScheduleInfo(dateStr, isPast) {
+    getScheduleInfo(dateStr, isPast) 
+    {
         var schedule = this.monthSchedule[dateStr];
         
         if (!schedule) {
@@ -170,7 +174,8 @@ class DoctorCalendar {
         }
     }
     
-    loadMonthSchedule() {
+    loadMonthSchedule() 
+    {
         var self = this;
         this.monthSchedule = {};
         
@@ -191,7 +196,8 @@ class DoctorCalendar {
         });
     }
     
-    loadDaySchedule(dateStr) {
+    loadDaySchedule(dateStr) 
+    {
         var self = this;
         return fetch('/recepcjonista/api/lekarz/' + this.doctorId + '/schedule?date=' + dateStr)
             .then(function(response) {
@@ -207,7 +213,8 @@ class DoctorCalendar {
             });
     }
     
-    showDayDetails(dateStr) {
+    showDayDetails(dateStr) 
+    {
         var self = this;
         var modal = new bootstrap.Modal(document.getElementById('dayDetailsModal'));
         var modalTitle = document.getElementById('dayDetailsModalLabel');
@@ -226,7 +233,8 @@ class DoctorCalendar {
         }
     }
     
-    renderDayDetails(slots, dateStr, container) {
+    renderDayDetails(slots, dateStr, container) 
+    {
         var appointments = slots.filter(function(slot) { return !slot.available; });
         var availableSlots = slots.filter(function(slot) { return slot.available; });
         
@@ -303,19 +311,22 @@ class DoctorCalendar {
         container.innerHTML = html;
     }
     
-    previousMonth() {
+    previousMonth() 
+    {
         this.currentDate.setMonth(this.currentDate.getMonth() - 1);
         this.updateMonthDisplay();
         this.loadMonthSchedule();
     }
     
-    nextMonth() {
+    nextMonth() 
+    {
         this.currentDate.setMonth(this.currentDate.getMonth() + 1);
         this.updateMonthDisplay();
         this.loadMonthSchedule();
     }
     
-    formatPolishDate(dateStr) {
+    formatPolishDate(dateStr) 
+    {
         var months = [
             'stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca',
             'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'

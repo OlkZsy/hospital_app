@@ -1,4 +1,4 @@
-# app/forms.py
+
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField, EmailField, SelectField, DateField
 from wtforms.validators import DataRequired, Email, Length, EqualTo
@@ -37,9 +37,11 @@ class RegisterUserForm(FlaskForm):
         ('Okulistyka', 'Okulistyka'),
         ('Psychiatria', 'Psychiatria')
     ])
+    dzial = StringField('Dział/Specjalizacja', validators=[Length(max=100)])
     rola = SelectField('Rola', choices=[
         ('lekarz', 'Lekarz'),
         ('recepcjonista', 'Recepcjonista'),
-        ('administrator', 'Administrator')
+        ('administrator', 'Administrator'),
+        ('ordynator', 'Ordynator') 
     ], validators=[DataRequired()])
     submit = SubmitField('Zarejestruj')

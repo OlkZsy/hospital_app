@@ -348,7 +348,7 @@ class PatientCalendar {
         
         // Показываем/скрываем кнопку отмены
         if (canCancel) {
-            this.selectedAppointment = appointments[0]; // Для простоты берем первую
+            this.selectedAppointment = appointments[0]; //  первую
             cancelBtn.style.display = 'block';
         } else {
             cancelBtn.style.display = 'none';
@@ -372,7 +372,7 @@ class PatientCalendar {
                 if (result.success) {
                     alert(result.message || 'Wizyta została anulowana');
                     
-                    // Закрываем модал
+                    // Закрываем
                     var modal = bootstrap.Modal.getInstance(document.getElementById('appointmentDetailsModal'));
                     modal.hide();
                     

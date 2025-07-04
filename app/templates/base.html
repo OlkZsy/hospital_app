@@ -7,7 +7,7 @@
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
+    <!-- Font Awesome (icons) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:wght@300;400;700&display=swap" rel="stylesheet">
@@ -414,7 +414,24 @@
                 <div class="brand-icon">
                     <i class="fas fa-staff-snake"></i>
                 </div>
-                <span>ASKLEPIOS</span>
+                <div class="brand-text">
+                    <span class="brand-name">ASKLEPIOS</span>
+                    {% if current_user.is_authenticated %}    <!-- Panel użytkownika++ -->
+                        <small class="brand-role">
+                            {% if current_user.__class__.__name__ == 'Administrator' %}
+                                Panel administratora
+                            {% elif current_user.__class__.__name__ == 'Lekarz' %}
+                                Panel lekarza
+                            {% elif current_user.__class__.__name__ == 'Pacjent' %}
+                                Panel pacjenta
+                            {% elif current_user.__class__.__name__ == 'Recepcjonista' %}
+                                Panel recepcjonisty
+                            {% elif current_user.__class__.__name__ == 'Ordynator' %}
+                                Panel ordynatora
+                            {% endif %}
+                        </small>
+                    {% endif %}
+                </div>
             </a>
             
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -425,7 +442,7 @@
                 <ul class="navbar-nav ms-auto">
                     {% if current_user.is_authenticated %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{% if current_user.__class__.__name__ == 'Administrator' %}{{ url_for('administrator_bp.dashboard') }}{% elif current_user.__class__.__name__ == 'Lekarz' %}{{ url_for('lekarz_bp.dashboard') }}{% elif current_user.__class__.__name__ == 'Pacjent' %}{{ url_for('pacjent_bp.dashboard') }}{% elif current_user.__class__.__name__ == 'Recepcjonista' %}{{ url_for('recepcjonista_bp.dashboard') }}{% endif %}">
+                            <a class="nav-link" href="{% if current_user.__class__.__name__ == 'Administrator' %}{{ url_for('administrator_bp.dashboard') }}{% elif current_user.__class__.__name__ == 'Lekarz' %}{{ url_for('lekarz_bp.dashboard') }}{% elif current_user.__class__.__name__ == 'Pacjent' %}{{ url_for('pacjent_bp.dashboard') }}{% elif current_user.__class__.__name__ == 'Recepcjonista' %}{{ url_for('recepcjonista_bp.dashboard') }}{% elif current_user.__class__.__name__ == 'Ordynator' %}{{ url_for('ordynator_bp.dashboard') }}{% endif %}">
                                 <i class="fas fa-user-circle me-2"></i>
                                 {{ current_user.imie }} {{ current_user.nazwisko }}
                             </a>
@@ -501,4 +518,38 @@
     
     {% block scripts %}{% endblock %}
 </body>
+<!-- стиль для надписей панели, не работает на мобильном дизайне! -->
+<style>
+
+.brand-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.brand-name {
+    font-size: 1.5rem;
+    line-height: 1.2;
+}
+
+.brand-role {
+    font-size: 0.75rem;
+    opacity: 0.9;
+    font-weight: 400;
+    line-height: 1;
+    margin-top: -2px;
+}
+
+@media (max-width: 768px) {
+    .brand-role {
+        display: none;
+    }
+}
+
+</style>
+
+
+
+
+
 </html>

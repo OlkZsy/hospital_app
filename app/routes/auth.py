@@ -7,7 +7,7 @@ from app.models.lekarz import Lekarz
 from app.models.recepcjonista import Recepcjonista
 from app.models.administrator import Administrator
 from app.extensions import db
-
+from app.models.ordynator import Ordynator
 
 
 auth_bp = Blueprint('auth_bp', __name__)
@@ -16,7 +16,9 @@ def find_user_by_email(email):
     user = (Administrator.query.filter_by(email=email).first() or
             Lekarz.query.filter_by(email=email).first() or
             Recepcjonista.query.filter_by(email=email).first() or
-            Pacjent.query.filter_by(email=email).first())
+            Pacjent.query.filter_by(email=email).first() or
+            Ordynator.query.filter_by(email=email).first()
+            ) 
     #DEBUG
     # print(f"DEBUG find_user_by_email for {email}:")
     # print(f"  Admin: {admin}")
@@ -52,6 +54,8 @@ def login():
                 return redirect(url_for('pacjent_bp.dashboard'))
             elif isinstance(user, Recepcjonista):  
                 return redirect(url_for('recepcjonista_bp.dashboard'))
+            elif isinstance(user, Ordynator):  
+                return redirect(url_for('ordynator_bp.dashboard'))
             else:
                 flash('Nieznana rola użytkownika.', 'danger')
         else:

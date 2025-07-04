@@ -1,0 +1,162 @@
+
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Panel ordynatora</h2>
+    <p class="lead">Witaj, {{ user.imie }} {{ user.nazwisko }}!</p>
+    
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>
+        <strong>Twoje uprawnienia:</strong> Dostęp do raportów wizyt, zarządzanie użytkownikami (bez danych personalnych), eksport danych.
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card text-white bg-primary mb-3">
+                <div class="card-header">
+                    <i class="fas fa-users me-2"></i>Użytkownicy systemu
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Przeglądaj listę wszystkich użytkowników systemu (bez danych personalnych).</p>
+                    <a href="{{ url_for('ordynator_bp.users') }}" class="btn btn-light">Zarządzaj użytkownikami</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card text-white bg-success mb-3">
+                <div class="card-header">
+                    <i class="fas fa-chart-line me-2"></i>Raporty wizyt
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Szczegółowe raporty wszystkich wizyt z możliwością eksportu i filtrowania.</p>
+                    <a href="{{ url_for('ordynator_bp.wizyty') }}" class="btn btn-light">Zobacz raporty</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card text-white bg-info mb-3">
+                <div class="card-header">
+                    <i class="fas fa-file-export me-2"></i>Eksport danych
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Eksportuj raporty do plików CSV z możliwością sortowania i filtrowania.</p>
+                    <a href="{{ url_for('ordynator_bp.wizyty') }}?export=csv" class="btn btn-light">Eksportuj dane</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Szybkie statystyki -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6><i class="fas fa-tachometer-alt me-2"></i>Szybkie statystyki</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center" id="quickStats">
+                        <div class="col-md-3">
+                            <div class="text-primary">
+                                <i class="fas fa-users fa-2x mb-2"></i>
+                                <h4>{{ total_users or 0 }}</h4>
+                                <small>Użytkowników</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-success">
+                                <i class="fas fa-user-md fa-2x mb-2"></i>
+                                <h4>{{ total_doctors or 0 }}</h4>
+                                <small>Lekarzy</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-info">
+                                <i class="fas fa-calendar-check fa-2x mb-2"></i>
+                                <h4>{{ total_visits or 0 }}</h4>
+                                <small>Wizyt (ogółem)</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-warning">
+                                <i class="fas fa-calendar-alt fa-2x mb-2"></i>
+                                <h4>{{ today_visits or 0 }}</h4>
+                                <small>Wizyt dzisiaj</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ostatnie aktywności -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6><i class="fas fa-clock me-2"></i>Ostatnie aktywności</h6>
+                </div>
+                <div class="card-body">
+                    {% if recent_activities %}
+                    <div class="list-group list-group-flush">
+                        {% for wizyta in recent_activities %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ wizyta.pacjent.imie }} {{ wizyta.pacjent.nazwisko }}</strong>
+                                <small class="text-muted"> u Dr {{ wizyta.lekarz.imie }} {{ wizyta.lekarz.nazwisko }}</small>
+                                <br>
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    {{ wizyta.data_wizyty.strftime('%d.%m.%Y %H:%M') }}
+                                </small>
+                            </div>
+                            <div>
+                                {% if wizyta.status == 'zaplanowana' %}
+                                <span class="badge bg-warning">Zaplanowana</span>
+                                {% elif wizyta.status == 'zakonczona' %}
+                                <span class="badge bg-success">Zakończona</span>
+                                {% elif wizyta.status == 'anulowana' %}
+                                <span class="badge bg-danger">Anulowana</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center">Brak ostatnich aktywności</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Ładowanie statystyk przy załadowaniu strony
+document.addEventListener('DOMContentLoaded', function() {
+    loadQuickStats();
+    loadRecentActivities();
+});
+
+function loadQuickStats() {
+    // W prawdziwej implementacji te dane powinny pochodzić z API
+    // Na razie symulujemy ładowanie
+    setTimeout(function() {
+        
+    }, 1000);
+}
+
+function loadRecentActivities() {
+    // Symulacja ładowania ostatnich aktywności
+    setTimeout(function() {
+        var activitiesHtml = `
+           
+        `;
+        document.getElementById('recentActivities').innerHTML = activitiesHtml;
+    }, 1500);
+}
+</script>
+{% endblock %}

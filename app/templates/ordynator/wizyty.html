@@ -1,0 +1,515 @@
+<!-- templates/ordynator/wizyty.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>Raporty wizyt - Panel ordynatora</h2>
+            <p class="text-muted mb-0">Szczegółowe raporty wszystkich wizyt w systemie z możliwością eksportu</p>
+        </div>
+        <div class="d-flex gap-2">
+            <!-- <button onclick="exportToPDF()" class="btn btn-danger">
+                <i class="fas fa-file-pdf"></i> Eksport PDF -->
+            </button>
+            <a href="{{ url_for('ordynator_bp.wizyty', export='csv') }}" class="btn btn-success">
+                <i class="fas fa-file-csv"></i> Eksport CSV
+            </a>
+            <a href="{{ url_for('ordynator_bp.dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Powrót
+            </a>
+        </div>
+    </div>
+    
+    <!-- Filtry i wyszukiwanie (identyczne jak u administratora) -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtry raportów</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" id="filterForm">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label for="search" class="form-label">Szukaj pacjenta lub lekarza</label>
+                        <input type="text" name="search" id="search" class="form-control" 
+                               placeholder="Imię, nazwisko..."
+                               value="{{ request.args.get('search', '') }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="status" class="form-label">Status wizyty</label>
+                        <select name="status" id="status" class="form-select">
+                            <option value="">Wszystkie</option>
+                            <option value="zaplanowana" {% if request.args.get('status') == 'zaplanowana' %}selected{% endif %}>Zaplanowane</option>
+                            <option value="zakonczona" {% if request.args.get('status') == 'zakonczona' %}selected{% endif %}>Zakończone</option>
+                            <option value="anulowana" {% if request.args.get('status') == 'anulowana' %}selected{% endif %}>Anulowane</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="date_from" class="form-label">Data od</label>
+                        <input type="date" name="date_from" id="date_from" class="form-control"
+                               value="{{ request.args.get('date_from', '') }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="date_to" class="form-label">Data do</label>
+                        <input type="date" name="date_to" id="date_to" class="form-control"
+                               value="{{ request.args.get('date_to', '') }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="doctor" class="form-label">Lekarz</label>
+                        <select name="doctor" id="doctor" class="form-select">
+                            <option value="">Wszyscy lekarze</option>
+                            {% for lekarz in doctors %}
+                            <option value="{{ lekarz.id_lekarza }}" 
+                                    {% if request.args.get('doctor')|int == lekarz.id_lekarza %}selected{% endif %}>
+                                Dr {{ lekarz.imie }} {{ lekarz.nazwisko }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-12">
+                        <a href="{{ url_for('ordynator_bp.wizyty') }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-times"></i> Wyczyść filtry
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Statystyki wizyt (identyczne jak u administratora) -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3>{{ total_visits }}</h3>
+                    <p class="mb-0">Wszystkich wizyt</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body text-center">
+                    <h3>{{ planned_visits }}</h3>
+                    <p class="mb-0">Zaplanowanych</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3>{{ completed_visits }}</h3>
+                    <p class="mb-0">Zakończonych</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body text-center">
+                    <h3>{{ cancelled_visits }}</h3>
+                    <p class="mb-0">Anulowanych</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Wyniki filtrowania -->
+    {% if filter_active %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>
+        Wyniki filtrowania: <strong>{{ wizyty|length }}</strong> wizyt
+        {% if search_query %} | Wyszukiwanie: <strong>"{{ search_query }}"</strong>{% endif %}
+        {% if status_filter %} | Status: <strong>{{ status_filter }}</strong>{% endif %}
+    </div>
+    {% endif %}
+    
+    <!-- Tabela wizyt z możliwością sortowania -->
+    {% if wizyty %}
+    <div class="card" id="visitsTable">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-chart-line me-2"></i>
+                Raport wizyt
+                {% if wizyty|length != total_visits %}
+                    ({{ wizyty|length }} z {{ total_visits }})
+                {% endif %}
+            </h5>
+            <div class="btn-group btn-group-sm">
+                <!-- <button type="button" class="btn btn-outline-info" onclick="toggleSortableColumns()">
+                    <i class="fas fa-sort"></i> Sortowanie
+                </button> -->
+                <button type="button" class="btn btn-outline-success" onclick="printTable()">
+                    <i class="fas fa-print"></i> Drukuj
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped" id="visitsDataTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th onclick="sortTable(2)" style="cursor: pointer;">
+                                Data i godzina <i class="fas fa-sort ms-1"></i>
+                            </th>
+                            <th onclick="sortTable(2)" style="cursor: pointer;">
+                                Pacjent <i class="fas fa-sort ms-1"></i>
+                            </th> 
+                            
+                            <th onclick="sortTable(2)" style="cursor: pointer;">
+                                Lekarz <i class="fas fa-sort ms-1"></i>
+                            </th>
+                            <th onclick="sortTable(3)" style="cursor: pointer;">
+                                Status <i class="fas fa-sort ms-1"></i>
+                            </th>
+                            <th>Notatki</th>
+                            <th>Utworzona przez</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for wizyta in wizyty %}
+                        <tr data-status="{{ wizyta.status }}" data-visit-id="{{ wizyta.id_wizyty }}">
+                            <td>
+                                <div>
+                                    <strong>{{ wizyta.data_wizyty.strftime('%d.%m.%Y') }}</strong><br>
+                                    <small class="text-muted">{{ wizyta.data_wizyty.strftime('%H:%M') }}</small>
+                                    {% if wizyta.data_wizyty.date() == today %}
+                                    <span class="badge bg-info ms-1">Dziś</span>
+                                    {% elif wizyta.data_wizyty.date() == tomorrow %}
+                                    <span class="badge bg-warning ms-1">Jutro</span>
+                                    {% elif wizyta.data_wizyty < now %}
+                                    <span class="badge bg-secondary ms-1">Przeszła</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="patient-avatar me-2">
+                                        <i class="fas fa-user text-info"></i>
+                                    </div>
+                                    <div>
+                                        <strong>{{ wizyta.pacjent.imie }} {{ wizyta.pacjent.nazwisko }}</strong><br>
+                                        <small class="text-muted">{{ wizyta.pacjent.email }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="doctor-avatar me-2">
+                                        <i class="fas fa-user-md text-success"></i>
+                                    </div>
+                                    <div>
+                                        <strong>Dr {{ wizyta.lekarz.imie }} {{ wizyta.lekarz.nazwisko }}</strong><br>
+                                        <small class="text-muted">{{ wizyta.lekarz.specjalizacja or 'Medycyna Ogólna' }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if wizyta.status == 'zaplanowana' %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="fas fa-clock me-1"></i>Zaplanowana
+                                </span>
+                                {% elif wizyta.status == 'zakonczona' %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check me-1"></i>Zakończona
+                                </span>
+                                {% elif wizyta.status == 'anulowana' %}
+                                <span class="badge bg-danger">
+                                    <i class="fas fa-times me-1"></i>Anulowana
+                                </span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ wizyta.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if wizyta.notatki %}
+                                <span class="text-truncate d-inline-block" style="max-width: 200px;" 
+                                      title="{{ wizyta.notatki }}" data-bs-toggle="tooltip">
+                                    {{ wizyta.notatki }}
+                                </span>
+                                {% else %}
+                                <span class="text-muted">Brak notatek</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if wizyta.autor %}
+                                <small class="text-muted">
+                                    <i class="fas fa-user-tie me-1"></i>
+                                    {{ wizyta.autor.imie }} {{ wizyta.autor.nazwisko }}
+                                    <br>Recepcjonista
+                                </small>
+                                {% else %}
+                                <small class="text-muted">
+                                    <i class="fas fa-user me-1"></i>
+                                    System/Pacjent
+                                </small>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info text-center">
+        <i class="fas fa-chart-line fa-3x mb-3"></i>
+        <h4>Brak danych do wyświetlenia</h4>
+        {% if filter_active %}
+        <p>Nie znaleziono wizyt pasujących do wybranych kryteriów filtrowania.</p>
+        <a href="{{ url_for('ordynator_bp.wizyty') }}" class="btn btn-primary">Pokaż wszystkie raporty</a>
+        {% else %}
+        <p>Nie ma jeszcze żadnych wizyt w systemie do wygenerowania raportów.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.13/jspdf.plugin.autotable.min.js"></script>
+
+<script>
+let sortOrder = {};
+
+// Sortowanie tabeli
+function sortTable(columnIndex) {
+    var table = document.getElementById('visitsDataTable');
+    var tbody = table.getElementsByTagName('tbody')[0];
+    var rows = Array.from(tbody.getElementsByTagName('tr'));
+    
+    var isAscending = !sortOrder[columnIndex];
+    sortOrder[columnIndex] = isAscending;
+    
+    rows.sort(function(a, b) {
+        var aText = a.getElementsByTagName('td')[columnIndex].textContent.trim();
+        var bText = b.getElementsByTagName('td')[columnIndex].textContent.trim();
+        
+        // Specjalne sortowanie dla dat
+        if (columnIndex === 0) {
+            var aDate = new Date(aText.split('\n')[0].split('.').reverse().join('-'));
+            var bDate = new Date(bText.split('\n')[0].split('.').reverse().join('-'));
+            return isAscending ? aDate - bDate : bDate - aDate;
+        }
+        
+        if (isAscending) {
+            return aText.localeCompare(bText);
+        } else {
+            return bText.localeCompare(aText);
+        }
+    });
+    
+    tbody.innerHTML = '';
+    rows.forEach(function(row) {
+        tbody.appendChild(row);
+    });
+    
+    // Aktualizacja ikon sortowania
+    updateSortIcons(columnIndex, isAscending);
+}
+
+function updateSortIcons(sortedColumnIndex, isAscending) {
+    var headers = document.querySelectorAll('#visitsDataTable th i');
+    headers.forEach(function(icon, index) {
+        if (index === sortedColumnIndex) {
+            icon.className = 'fas fa-sort-' + (isAscending ? 'up' : 'down') + ' ms-1';
+        } else {
+            icon.className = 'fas fa-sort ms-1';
+        }
+    });
+}
+
+// Eksport do PDF
+function exportToPDF() {
+    var doc = new jsPDF();
+    const doc = new jsPDF();
+    
+    // Konfiguracja dokumentu
+    doc.setFont('helvetica');
+    doc.setFontSize(16);
+    doc.text('Raport wizyt - ASKLEPIOS Medical Center', 20, 20);
+    
+    doc.setFontSize(10);
+    doc.text('Data wygenerowania: ' + new Date().toLocaleString('pl-PL'), 20, 30);
+    
+    // Przygotowanie danych tabeli
+    var table = document.getElementById('visitsDataTable');
+    var rows = table.querySelectorAll('tbody tr');
+    var tableData = [];
+    
+    rows.forEach(function(row) {
+        var cells = row.querySelectorAll('td');
+        var rowData = [];
+        
+        cells.forEach(function(cell, index) {
+            if (index < 6) { // Tylko pierwsze 6 kolumn
+                var text = cell.textContent.trim();
+                // Czyścimy tekst z nadmiarowych spacji i nowych linii
+                text = text.replace(/\s+/g, ' ').substr(0, 50);
+                rowData.push(text);
+            }
+        });
+        
+        tableData.push(rowData);
+    });
+    
+    // Generowanie tabeli w PDF
+    doc.autoTable({
+        head: [['Data', 'Pacjent', 'Lekarz', 'Status', 'Notatki', 'Utworzona przez']],
+        body: tableData,
+        startY: 40,
+        styles: {
+            fontSize: 8,
+            cellPadding: 2
+        },
+        headStyles: {
+            fillColor: [46, 134, 171],
+            textColor: 255
+        },
+        columnStyles: {
+            0: { cellWidth: 25 },
+            1: { cellWidth: 35 },
+            2: { cellWidth: 35 },
+            3: { cellWidth: 25 },
+            4: { cellWidth: 40 },
+            5: { cellWidth: 30 }
+        }
+    });
+    
+    // Zapis pliku
+    var filename = 'raport_wizyt_' + new Date().toISOString().split('T')[0] + '.pdf';
+    doc.save(filename);
+}
+
+// Drukowanie tabeli
+function printTable() {
+    var printWindow = window.open('', '_blank');
+    var tableHTML = document.getElementById('visitsTable').innerHTML;
+    
+    printWindow.document.write(`
+        <html>
+        <head>
+            <title>Raport wizyt - ASKLEPIOS</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                .card-header { background: #2E86AB; color: white; padding: 10px; }
+                .table { width: 100%; border-collapse: collapse; }
+                .table th, .table td { border: 1px solid #ddd; padding: 8px; font-size: 12px; }
+                .table th { background-color: #f2f2f2; }
+                .badge { padding: 2px 6px; border-radius: 3px; font-size: 10px; }
+                .bg-success { background-color: #28a745; color: white; }
+                .bg-warning { background-color: #ffc107; color: black; }
+                .bg-danger { background-color: #dc3545; color: white; }
+                .text-muted { color: #6c757d; }
+                @media print {
+                    .btn-group { display: none; }
+                }
+            </style>
+        </head>
+        <body>
+            <h2>ASKLEPIOS Medical Center - Raport wizyt</h2>
+            <p>Data wygenerowania: ${new Date().toLocaleString('pl-PL')}</p>
+            ${tableHTML}
+        </body>
+        </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.print();
+}
+
+// Przełączanie sortowania kolumn
+function toggleSortableColumns() {
+    var headers = document.querySelectorAll('#visitsDataTable th[onclick]');
+    headers.forEach(function(header) {
+        header.style.backgroundColor = header.style.backgroundColor ? '' : '#e3f2fd';
+    });
+}
+
+// Auto-submit przy zmianie filtrów
+['status', 'date_from', 'date_to', 'doctor'].forEach(function(id) {
+    var element = document.getElementById(id);
+    if (element) {
+        element.addEventListener('change', function() {
+            document.getElementById('filterForm').submit();
+        });
+    }
+});
+
+// Inicjalizacja tooltips
+var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl);
+});
+</script>
+
+<style>
+.patient-avatar, .doctor-avatar {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.table th[onclick]:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    cursor: pointer;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.text-truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Print styles */
+@media print {
+    .container-fluid {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+    
+    .btn, .alert, .card-header .btn-group {
+        display: none !important;
+    }
+    
+    .table {
+        font-size: 10px !important;
+    }
+    
+    .patient-avatar, .doctor-avatar {
+        display: none !important;
+    }
+}
+</style>
+{% endblock %}="sortTable(0)" style="cursor: pointer;">
+                                Data i godzina <i class="fas fa-sort ms-1"></i>
+                            </th>
+                            <th onclick="sortTable(1)" style="cursor: pointer;">
+                                Pacjent <i class="fas fa-sort ms-1"></i>
+                            </th>
+                            <th onclick

@@ -1,0 +1,277 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>Zarządzanie użytkownikami - Panel ordynatora</h2>
+            <p class="text-muted mb-0">Lista wszystkich użytkowników systemu (bez danych personalnych)</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button onclick="printUsers()" class="btn btn-secondary">
+                <i class="fas fa-print"></i> Drukuj
+            </button>
+            <a href="{{ url_for('ordynator_bp.dashboard') }}" class="btn btn-primary">
+                <i class="fas fa-arrow-left"></i> Powrót
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtry i statystyki -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtry</h5>
+                </div>
+                <div class="card-body">
+                    <form method="GET" id="filterForm">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="search" class="form-label">Szukaj użytkownika</label>
+                                <input type="text" name="search" id="search" class="form-control" 
+                                       placeholder="Imię, nazwisko, email..."
+                                       value="{{ search_query }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="rola" class="form-label">Rola użytkownika</label>
+                                <select name="rola" id="rola" class="form-select">
+                                    <option value="">Wszystkie role</option>
+                                    <option value="administrator" {% if role_filter == 'administrator' %}selected{% endif %}>Administrator</option>
+                                    <option value="lekarz" {% if role_filter == 'lekarz' %}selected{% endif %}>Lekarz</option>
+                                    <option value="recepcjonista" {% if role_filter == 'recepcjonista' %}selected{% endif %}>Recepcjonista</option>
+                                    <option value="ordynator" {% if role_filter == 'ordynator' %}selected{% endif %}>Ordynator</option>
+                                    <option value="pacjent" {% if role_filter == 'pacjent' %}selected{% endif %}>Pacjent</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-search"></i> Filtruj
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Statystyki</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h4 class="text-primary">{{ total_count }}</h4>
+                            <small class="text-dark">Wszyscy użytkownicy</small>
+                        </div>
+                        <div class="col-6">
+                            <h4 class="text-success">{{ doctors_count }}</h4>
+                            <small class="text-dark">Lekarze</small>
+                        </div>
+                        <div class="col-6 mt-2">
+                            <h4 class="text-info">{{ patients_count }}</h4>
+                            <small class="text-dark">Pacjenci</small>
+                        </div>
+                        <div class="col-6 mt-2">
+                            <h4 class="text-warning">{{ staff_count }}</h4>
+                            <small class="text-dark">Personel</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela użytkowników -->
+    {% if users %}
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-users me-2"></i>
+                Lista użytkowników 
+                <span class="badge bg-primary ms-2">{{ users|length }}</span>
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive" id="usersTable">
+                <table class="table table-striped table-hover" id="usersDataTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th onclick="sortTable(0)" style="cursor: pointer;">
+                                ID <i class="fas fa-sort ms-1"></i>
+                            </th>
+                            <th onclick="sortTable(1)" style="cursor: pointer;">
+                                Imię <i class="fas fa-sort ms-1"></i>
+                            </th>
+                            <th onclick="sortTable(2)" style="cursor: pointer;">
+                                Nazwisko <i class="fas fa-sort ms-1"></i>
+                            </th>
+                            <th onclick="sortTable(3)" style="cursor: pointer;">
+                                Email <i class="fas fa-sort ms-1"></i>
+                            </th>
+                            <th onclick="sortTable(4)" style="cursor: pointer;">
+                                Rola <i class="fas fa-sort ms-1"></i>
+                            </th>
+                            <th onclick="sortTable(5)" style="cursor: pointer;">
+                                Specjalizacja <i class="fas fa-sort ms-1"></i>
+                            </th>
+                            <th onclick="sortTable(6)" style="cursor: pointer;">
+                                Status <i class="fas fa-sort ms-1"></i>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td>
+                                <span class="badge bg-secondary">{{ user.id }}</span>
+                            </td>
+                            <td>
+                                <strong>{{ user.imie }}</strong>
+                            </td>
+                            <td>
+                                <strong>{{ user.nazwisko }}</strong>
+                            </td>
+                            <td>
+                                <i class="fas fa-envelope me-1 text-muted"></i>
+                                {{ user.email }}
+                            </td>
+                            <td>
+                                {% if user.role == 'administrator' %}
+                                <span class="badge bg-danger"><i class="fas fa-user-shield me-1"></i>Administrator</span>
+                                {% elif user.role == 'lekarz' %}
+                                <span class="badge bg-primary"><i class="fas fa-user-md me-1"></i>Lekarz</span>
+                                {% elif user.role == 'recepcjonista' %}
+                                <span class="badge bg-info"><i class="fas fa-user-tie me-1"></i>Recepcjonista</span>
+                                {% elif user.role == 'ordynator' %}
+                                <span class="badge bg-warning"><i class="fas fa-user-cog me-1"></i>Ordynator</span>
+                                {% elif user.role == 'pacjent' %}
+                                <span class="badge bg-success"><i class="fas fa-user me-1"></i>Pacjent</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.specjalizacja %}
+                                <span class="text-primary">{{ user.specjalizacja }}</span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check-circle me-1"></i>{{ user.status }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info text-center">
+        <i class="fas fa-users fa-3x mb-3"></i>
+        <h4>Brak użytkowników</h4>
+        {% if search_query or role_filter %}
+        <p>Nie znaleziono użytkowników pasujących do wybranych kryteriów filtrowania.</p>
+        <a href="{{ url_for('ordynator_bp.users') }}" class="btn btn-primary">Pokaż wszystkich użytkowników</a>
+        {% else %}
+        <p>Nie ma jeszcze żadnych użytkowników w systemie.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+let sortOrder = {};
+
+// Sortowanie tabeli
+function sortTable(columnIndex) {
+    var table = document.getElementById('usersDataTable');
+    var tbody = table.getElementsByTagName('tbody')[0];
+    var rows = Array.from(tbody.getElementsByTagName('tr'));
+    
+    var isAscending = !sortOrder[columnIndex];
+    sortOrder[columnIndex] = isAscending;
+    
+    rows.sort(function(a, b) {
+        var aText = a.getElementsByTagName('td')[columnIndex].textContent.trim();
+        var bText = b.getElementsByTagName('td')[columnIndex].textContent.trim();
+        
+        // Numeryczne sortowanie dla ID
+        if (columnIndex === 0) {
+            var aNum = parseInt(aText);
+            var bNum = parseInt(bText);
+            return isAscending ? aNum - bNum : bNum - aNum + role;
+        }
+        
+        if (isAscending) {
+            return aText.localeCompare(bText);
+        } else {
+            return bText.localeCompare(aText);
+        }
+    });
+    
+    tbody.innerHTML = '';
+    rows.forEach(function(row) {
+        tbody.appendChild(row);
+    });
+    
+    updateSortIcons(columnIndex, isAscending);
+}
+
+function updateSortIcons(sortedColumnIndex, isAscending) {
+    var headers = document.querySelectorAll('#usersDataTable th i');
+    headers.forEach(function(icon, index) {
+        if (index === sortedColumnIndex) {
+            icon.className = 'fas fa-sort-' + (isAscending ? 'up' : 'down') + ' ms-1';
+        } else {
+            icon.className = 'fas fa-sort ms-1';
+        }
+    });
+}
+
+// Drukowanie tabeli
+function printUsers() {
+    var printWindow = window.open('', '_blank');
+    var tableHTML = document.getElementById('usersTable').innerHTML;
+    
+    printWindow.document.write(`
+        <html>
+        <head>
+            <title>Lista użytkowników - ASKLEPIOS</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                .card-header { background: #2E86AB; color: white; padding: 10px; margin-bottom: 10px; }
+                .table { width: 100%; border-collapse: collapse; }
+                .table th, .table td { border: 1px solid #ddd; padding: 8px; font-size: 12px; }
+                .table th { background-color: #f2f2f2; }
+                .badge { padding: 2px 6px; border-radius: 3px; font-size: 10px; }
+                .bg-success { background-color: #28a745; color: white; }
+                .bg-primary { background-color: #007bff; color: white; }
+                .bg-info { background-color: #17a2b8; color: white; }
+                .bg-warning { background-color: #ffc107; color: black; }
+                .bg-danger { background-color: #dc3545; color: white; }
+                .bg-secondary { background-color: #6c757d; color: white; }
+                .text-muted { color: #6c757d; }
+                @media print {
+                    .btn-group { display: none; }
+                }
+            </style>
+        </head>
+        <body>
+            <h2>ASKLEPIOS Medical Center - Lista użytkowników</h2>
+            <p>Data wygenerowania: ${new Date().toLocaleString('pl-PL')}</p>
+            <p>Ordynator: {{ current_user.imie }} {{ current_user.nazwisko }}</p>
+            ${tableHTML}
+        </body>
+        </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.print();
+}
+</script>
+{% endblock %}
